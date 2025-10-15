@@ -7,6 +7,7 @@ import Buses from '../views/Buses';
 import Routes from '../views/Routes';
 import Tracking from '../views/Tracking';
 import Settings from '../views/Settings';
+import Parents from '../views/Parents';
 
 const viewMap = {
   overview: Overview,
@@ -15,13 +16,13 @@ const viewMap = {
   buses: Buses,
   routes: Routes,
   tracking: Tracking,
+  parents: Parents,
   settings: Settings,
 };
 
 export default function Dashboard() {
   const [active, setActive] = useState('overview');
   const ActiveView = viewMap[active] || Overview;
-
   return (
     <div className="flex">
       <Sidebar active={active} onSelect={setActive} />

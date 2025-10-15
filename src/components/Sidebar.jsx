@@ -8,6 +8,7 @@ export default function Sidebar({ active = 'overview', onSelect = () => {} }) {
     { key: 'buses', label: 'Xe buýt', icon: '🚌' },
     { key: 'routes', label: 'Tuyến đường', icon: '🗺️' },
     { key: 'tracking', label: 'Theo dõi', icon: '📍' },
+    { key: 'parents', label: 'Phụ huynh', icon: '👪' },
     { key: 'settings', label: 'Cài đặt', icon: '⚙️' },
   ];
 
