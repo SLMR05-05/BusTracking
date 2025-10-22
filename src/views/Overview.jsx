@@ -117,7 +117,7 @@ export default function Overview() {
         {/* Activities */}
         <div className="lg:col-span-2">
           <ActivityList items={activities} />
-        </div>
+        </div>  
         
         {/* Today's Stats */}
         <div className="bg-white rounded-xl p-6 shadow-sm border">
@@ -150,7 +150,7 @@ export default function Overview() {
         </div>
       </section>
 
-      {/* Quick Actions */}
+      {/* Quick Actions
       <section className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
           <Zap className="text-green-500" size={20} />
@@ -174,7 +174,7 @@ export default function Overview() {
             <div className="text-sm font-medium text-orange-800">Theo dõi xe</div>
           </button>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
