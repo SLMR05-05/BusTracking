@@ -1,80 +1,83 @@
-import React from "react";
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export function LoginPage() {
+export default function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login, users } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (login(username, password)) {
+      // Chuyển hướng dựa vào role
+      const user = users.find(u => u.username === username);
+      switch(user.role) {
+        case 'admin':
+          navigate('/dashboard');
+          break;
+        case 'driver':
+          navigate('/driver-dashboard');
+          break;
+        case 'parent':
+          navigate('/parent-dashboard');
+          break;
+        default:
+          navigate('/login');
+      }
+    } else {
+      setError('Tên đăng nhập hoặc mật khẩu không đúng');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="text-blue-600 text-3xl">🚌</div>
-          <h1 className="text-lg font-semibold text-gray-800">SSB 1.0</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-center mb-8">          Đăng nhập        </h2>
+
+        {error && (
+        <div className="bg-red-50 text-red-600 p-3 rounded mb-4">
+            {error}
         </div>
-        <p className="text-sm text-blue-600 font-medium">
-          Smart School Bus Tracking System
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Hệ thống quản lý xe buýt đưa đón học sinh
-        </p>
-      </div>
+)}
 
-      {/* Login Card */}
-      <div className="bg-white w-[380px] rounded-2xl shadow-md p-6 border border-gray-200">
-        <h2 className="text-center font-semibold mb-6 text-gray-700">
-          Đăng nhập hệ thống
-        </h2>
-
-        {/* Tabs */}
-        <div className="flex justify-between mb-4 text-sm bg-gray-100 rounded-full p-1">
-          <button className="flex-1 py-2 bg-white rounded-full font-medium shadow-sm">
-            Đăng nhập 
-          </button>
-          <button className="flex-1 py-2 text-gray-500">Đăng kí</button>
-        </div>
-
-        {/* Form */}
-        <form className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
+            <label className="block text-sm font-medium text-gray-700">
               Tên đăng nhập
             </label>
             <input
               type="text"
-              placeholder="Nhập tên đăng nhập"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
+            <label className="block text-sm font-medium text-gray-700">
               Mật khẩu
             </label>
             <input
               type="password"
-              placeholder="Nhập mật khẩu"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <span>⇨</span> Đăng nhập
+            Đăng nhập
           </button>
         </form>
-
-        <p className="text-center text-sm text-gray-500 mt-3">
-          Quên mật khẩu?{' '}
-          <a href="#" className="text-blue-600 hover:underline">
-            Khôi phục tài khoản
-          </a>
-        </p>
       </div>
-
-      {/* Footer */}
-      <p className="text-xs text-gray-400 mt-6">
-        © 2025 Truong DCEF - SSB 1.0 System
-      </p>
     </div>
   );
 }
