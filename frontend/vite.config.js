@@ -6,11 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    open: true
+    open: true,
+    historyApiFallback: true, // 👈 THÊM DÒNG NÀY để tránh lỗi 404 khi reload route
   },
   resolve: {
     alias: {
-      '@': '/src'
-    }
-  }
+      '@': '/src',
+    },
+  },
 })
