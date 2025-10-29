@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './components/Login';
-import Parents from './views/Parents';
 import ParentsManagement from './views/ParentsManagement';
 import Overview from './views/Overview';
 import Drivers from './views/Drivers';
@@ -11,6 +10,10 @@ import Buses from './views/Buses';
 import RoutesManagement from './views/Routes';
 import Tracking from './views/Tracking';
 import Settings from './views/Settings';
+import DriverDashboard from './views/DriverDashboard';
+import ParentDashboard from './views/ParentDashboard';
+import ParentHistory from './views/ParentHistory';
+import Schedule from './views/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -86,13 +89,21 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/schedule"
+              element={
+                <PrivateRoute allowedRoles={['admin']}>
+                  <Schedule />
+                </PrivateRoute>
+              }
+            />
 
             {/* Driver Routes */}
             <Route
               path="/driver-dashboard"
               element={
                 <PrivateRoute allowedRoles={['driver']}>
-                  <Drivers />
+                  <DriverDashboard />
                 </PrivateRoute>
               }
             />
@@ -102,7 +113,15 @@ function App() {
               path="/parent-dashboard"
               element={
                 <PrivateRoute allowedRoles={['parent']}>
-                  <Parents />
+                  <ParentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-history"
+              element={
+                <PrivateRoute allowedRoles={['parent']}>
+                  <ParentHistory />
                 </PrivateRoute>
               }
             />

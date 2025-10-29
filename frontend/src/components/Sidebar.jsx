@@ -1,16 +1,17 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  BarChart3, 
-  Users, 
-  User, 
-  Bus, 
-  MapPin, 
-  Navigation, 
-  UserCheck, 
+import {
+  BarChart3,
+  Users,
+  User,
+  Bus,
+  MapPin,
+  Navigation,
+  UserCheck,
   Settings,
-  LogOut
+  LogOut,
+  Calendar,
+  Clock
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -24,6 +25,7 @@ export default function Sidebar() {
     { key: 'drivers', label: 'Tài xế', icon: User, path: '/drivers' },
     { key: 'buses', label: 'Xe buýt', icon: Bus, path: '/buses' },
     { key: 'routes', label: 'Tuyến đường', icon: MapPin, path: '/routes' },
+    { key: 'schedule', label: 'Lịch trình', icon: Calendar, path: '/schedule' },
     { key: 'tracking', label: 'Theo dõi', icon: Navigation, path: '/tracking' },
     { key: 'parents', label: 'Phụ huynh', icon: UserCheck, path: '/parents' },
     { key: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
@@ -38,7 +40,7 @@ export default function Sidebar() {
   const parentNav = [
     { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/parent-dashboard' },
     { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/parent-tracking' },
-    { key: 'notifications', label: 'Thông báo', icon: UserCheck, path: '/parent-notifications' },
+    { key: 'history', label: 'Lịch sử', icon: Clock, path: '/parent-history' },
   ];
 
   const getNavItems = () => {
@@ -92,11 +94,10 @@ export default function Sidebar() {
               <button
                 key={item.key}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors select-none ${
-                  active 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors select-none ${active
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
               >
                 <IconComponent size={20} />
                 <div className="font-medium">{item.label}</div>

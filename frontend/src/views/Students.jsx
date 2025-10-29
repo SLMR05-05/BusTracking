@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { mockStudents, mockBuses, mockRoutes } from '../data/mockData';
-import { Users, UserCheck, UserX, Plus } from 'lucide-react';
+import { mockStudents, mockBuses, mockRoutes, mockParents } from '../data/mockData';
+import { Users, UserCheck, UserX, Plus, Phone, User } from 'lucide-react';
 
 export default function Students() {
   const [students, setStudents] = useState(mockStudents);
@@ -12,10 +12,11 @@ export default function Students() {
     grade: '',
     address: '',
     phone: '',
-    parentName: '',
-    parentPhone: '',
+    parentId: '',
     busId: '',
     routeId: '',
+    pickupStopId: '',
+    dropoffStopId: '',
     pickupTime: '',
     dropoffTime: '',
     status: 'active'
@@ -46,10 +47,11 @@ export default function Students() {
       grade: '',
       address: '',
       phone: '',
-      parentName: '',
-      parentPhone: '',
+      parentId: '',
       busId: '',
       routeId: '',
+      pickupStopId: '',
+      dropoffStopId: '',
       pickupTime: '',
       dropoffTime: '',
       status: 'active'
@@ -69,13 +71,37 @@ export default function Students() {
   };
 
   const getBusName = (busId) => {
+    if (!busId) return 'Chưa phân công';
     const bus = mockBuses.find(b => b.busId === busId);
     return bus ? bus.busId : busId;
   };
 
   const getRouteName = (routeId) => {
+    if (!routeId) return 'Chưa phân công';
     const route = mockRoutes.find(r => r.routeId === routeId);
     return route ? route.name : routeId;
+  };
+
+  const getParentInfo = (parentId) => {
+    if (!parentId) return { name: 'Chưa có', phone: '' };
+    const parent = mockParents.find(p => p.id === parentId);
+    return parent ? { name: parent.name, phone: parent.phone } : { name: 'Không tìm thấy', phone: '' };
+  };
+
+  const getStopInfo = (stopId) => {
+    if (!stopId) return 'Chưa chọn';
+    // Tìm điểm dừng trong tất cả các tuyến đường
+    for (const route of mockRoutes) {
+      const stop = route.stops?.find(s => s.id === stopId);
+      if (stop) return stop.name;
+    }
+    return 'Không tìm thấy';
+  };
+
+  const getAvailableStops = (routeId) => {
+    if (!routeId) return [];
+    const route = mockRoutes.find(r => r.routeId === routeId);
+    return route ? route.stops || [] : [];
   };
 
   return (
@@ -149,10 +175,16 @@ export default function Students() {
                   Lớp
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Phụ huynh
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Xe buýt
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tuyến đường
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Điểm dừng
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thời gian
@@ -166,56 +198,90 @@ export default function Students() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {students.map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                      <div className="text-sm text-gray-500">{student.studentId}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {student.grade}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getBusName(student.busId)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getRouteName(student.routeId)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
-                      <div>Lên: {student.pickupTime}</div>
-                      <div>Xuống: {student.dropoffTime}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      student.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-orange-100 text-orange-800'
-                    }`}>
-                      {student.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(student)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDelete(student.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {students.map((student) => {
+                const parentInfo = getParentInfo(student.parentId);
+                return (
+                  <tr key={student.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                          {student.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          <div className="text-sm text-gray-500">{student.studentId}</div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1">
+                            <Phone size={12} />
+                            {student.phone}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {student.grade}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold mr-2">
+                          <User size={14} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{parentInfo.name}</div>
+                          {parentInfo.phone && (
+                            <div className="text-sm text-gray-500 flex items-center gap-1">
+                              <Phone size={12} />
+                              {parentInfo.phone}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getBusName(student.busId)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getRouteName(student.routeId)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div>
+                        <div>Lên: {getStopInfo(student.pickupStopId)}</div>
+                        <div>Xuống: {getStopInfo(student.dropoffStopId)}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div>
+                        <div>Lên: {student.pickupTime || 'Chưa có'}</div>
+                        <div>Xuống: {student.dropoffTime || 'Chưa có'}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        student.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-orange-100 text-orange-800'
+                      }`}>
+                        {student.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(student)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDelete(student.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -296,31 +362,42 @@ export default function Students() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên phụ huynh
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.parentName}
-                    onChange={(e) => setFormData({...formData, parentName: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SĐT phụ huynh
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.parentPhone}
-                    onChange={(e) => setFormData({...formData, parentPhone: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phụ huynh
+                </label>
+                <select
+                  value={formData.parentId}
+                  onChange={(e) => setFormData({...formData, parentId: parseInt(e.target.value)})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Chọn phụ huynh</option>
+                  {mockParents.filter(parent => parent.status === 'active').map(parent => (
+                    <option key={parent.id} value={parent.id}>
+                      {parent.name} - {parent.phone} ({parent.occupation})
+                    </option>
+                  ))}
+                </select>
+                {formData.parentId && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-blue-800">
+                      <div className="font-medium">Thông tin phụ huynh:</div>
+                      {(() => {
+                        const selectedParent = mockParents.find(p => p.id === parseInt(formData.parentId));
+                        return selectedParent ? (
+                          <div className="mt-1">
+                            <div>Tên: {selectedParent.name}</div>
+                            <div>SĐT: {selectedParent.phone}</div>
+                            <div>Email: {selectedParent.email}</div>
+                            <div>Nghề nghiệp: {selectedParent.occupation}</div>
+                            <div>Địa chỉ: {selectedParent.address}</div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -335,8 +412,10 @@ export default function Students() {
                     required
                   >
                     <option value="">Chọn xe buýt</option>
-                    {mockBuses.map(bus => (
-                      <option key={bus.id} value={bus.busId}>{bus.busId} - {bus.licensePlate}</option>
+                    {mockBuses.filter(bus => bus.status === 'active').map(bus => (
+                      <option key={bus.id} value={bus.busId}>
+                        {bus.busId} - {bus.licensePlate} (Sức chứa: {bus.capacity})
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -346,17 +425,103 @@ export default function Students() {
                   </label>
                   <select
                     value={formData.routeId}
-                    onChange={(e) => setFormData({...formData, routeId: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData, 
+                        routeId: e.target.value,
+                        pickupStopId: '', // Reset điểm dừng khi thay đổi tuyến
+                        dropoffStopId: ''
+                      });
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="">Chọn tuyến đường</option>
-                    {mockRoutes.map(route => (
-                      <option key={route.id} value={route.routeId}>{route.name}</option>
+                    {mockRoutes.filter(route => route.status === 'active').map(route => (
+                      <option key={route.id} value={route.routeId}>
+                        {route.name} - {route.distance} - {route.estimatedTime}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
+
+              {/* Điểm dừng - chỉ hiển thị khi đã chọn tuyến đường */}
+              {formData.routeId && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Điểm dừng lên xe
+                    </label>
+                    <select
+                      value={formData.pickupStopId}
+                      onChange={(e) => setFormData({...formData, pickupStopId: parseInt(e.target.value)})}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Chọn điểm dừng lên xe</option>
+                      {getAvailableStops(formData.routeId).map(stop => (
+                        <option key={stop.id} value={stop.id}>
+                          {stop.name} - {stop.address} ({stop.time})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Điểm dừng xuống xe
+                    </label>
+                    <select
+                      value={formData.dropoffStopId}
+                      onChange={(e) => setFormData({...formData, dropoffStopId: parseInt(e.target.value)})}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Chọn điểm dừng xuống xe</option>
+                      {getAvailableStops(formData.routeId).map(stop => (
+                        <option key={stop.id} value={stop.id}>
+                          {stop.name} - {stop.address} ({stop.time})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Hiển thị thông tin điểm dừng đã chọn */}
+              {formData.pickupStopId && formData.dropoffStopId && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Thông tin điểm dừng đã chọn:</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="font-medium text-blue-800">Điểm lên xe:</div>
+                      {(() => {
+                        const stop = getAvailableStops(formData.routeId).find(s => s.id === parseInt(formData.pickupStopId));
+                        return stop ? (
+                          <div className="text-blue-700">
+                            <div>{stop.name}</div>
+                            <div>{stop.address}</div>
+                            <div>Thời gian: {stop.time}</div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                    <div>
+                      <div className="font-medium text-blue-800">Điểm xuống xe:</div>
+                      {(() => {
+                        const stop = getAvailableStops(formData.routeId).find(s => s.id === parseInt(formData.dropoffStopId));
+                        return stop ? (
+                          <div className="text-blue-700">
+                            <div>{stop.name}</div>
+                            <div>{stop.address}</div>
+                            <div>Thời gian: {stop.time}</div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -368,7 +533,6 @@ export default function Students() {
                     value={formData.pickupTime}
                     onChange={(e) => setFormData({...formData, pickupTime: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
                   />
                 </div>
                 <div>
@@ -380,7 +544,6 @@ export default function Students() {
                     value={formData.dropoffTime}
                     onChange={(e) => setFormData({...formData, dropoffTime: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
                   />
                 </div>
               </div>
