@@ -15,10 +15,7 @@ export default function Students() {
     parentId: '',
     busId: '',
     routeId: '',
-    pickupStopId: '',
-    dropoffStopId: '',
-    pickupTime: '',
-    dropoffTime: '',
+    stopId: '',
     status: 'active'
   });
 
@@ -50,10 +47,7 @@ export default function Students() {
       parentId: '',
       busId: '',
       routeId: '',
-      pickupStopId: '',
-      dropoffStopId: '',
-      pickupTime: '',
-      dropoffTime: '',
+      stopId: '',
       status: 'active'
     });
   };
@@ -243,10 +237,7 @@ export default function Students() {
                       {getRouteName(student.routeId)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        <div>Lên: {getStopInfo(student.pickupStopId)}</div>
-                        <div>Xuống: {getStopInfo(student.dropoffStopId)}</div>
-                      </div>
+                      {getStopInfo(student.stopId || student.pickupStopId)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div>
@@ -429,8 +420,7 @@ export default function Students() {
                       setFormData({
                         ...formData, 
                         routeId: e.target.value,
-                        pickupStopId: '', // Reset điểm dừng khi thay đổi tuyến
-                        dropoffStopId: ''
+                        stopId: '' // Reset điểm dừng khi thay đổi tuyến
                       });
                     }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -448,105 +438,46 @@ export default function Students() {
 
               {/* Điểm dừng - chỉ hiển thị khi đã chọn tuyến đường */}
               {formData.routeId && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Điểm dừng lên xe
-                    </label>
-                    <select
-                      value={formData.pickupStopId}
-                      onChange={(e) => setFormData({...formData, pickupStopId: parseInt(e.target.value)})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Chọn điểm dừng lên xe</option>
-                      {getAvailableStops(formData.routeId).map(stop => (
-                        <option key={stop.id} value={stop.id}>
-                          {stop.name} - {stop.address} ({stop.time})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Điểm dừng xuống xe
-                    </label>
-                    <select
-                      value={formData.dropoffStopId}
-                      onChange={(e) => setFormData({...formData, dropoffStopId: parseInt(e.target.value)})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Chọn điểm dừng xuống xe</option>
-                      {getAvailableStops(formData.routeId).map(stop => (
-                        <option key={stop.id} value={stop.id}>
-                          {stop.name} - {stop.address} ({stop.time})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Điểm dừng
+                  </label>
+                  <select
+                    value={formData.stopId}
+                    onChange={(e) => setFormData({...formData, stopId: parseInt(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Chọn điểm dừng</option>
+                    {getAvailableStops(formData.routeId).map(stop => (
+                      <option key={stop.id} value={stop.id}>
+                        {stop.name} - {stop.address} ({stop.time})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
               {/* Hiển thị thông tin điểm dừng đã chọn */}
-              {formData.pickupStopId && formData.dropoffStopId && (
+              {formData.stopId && (
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Thông tin điểm dừng đã chọn:</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="font-medium text-blue-800">Điểm lên xe:</div>
-                      {(() => {
-                        const stop = getAvailableStops(formData.routeId).find(s => s.id === parseInt(formData.pickupStopId));
-                        return stop ? (
-                          <div className="text-blue-700">
-                            <div>{stop.name}</div>
-                            <div>{stop.address}</div>
-                            <div>Thời gian: {stop.time}</div>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                    <div>
-                      <div className="font-medium text-blue-800">Điểm xuống xe:</div>
-                      {(() => {
-                        const stop = getAvailableStops(formData.routeId).find(s => s.id === parseInt(formData.dropoffStopId));
-                        return stop ? (
-                          <div className="text-blue-700">
-                            <div>{stop.name}</div>
-                            <div>{stop.address}</div>
-                            <div>Thời gian: {stop.time}</div>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
+                  <div className="text-sm">
+                    {(() => {
+                      const stop = getAvailableStops(formData.routeId).find(s => s.id === parseInt(formData.stopId));
+                      return stop ? (
+                        <div className="text-blue-700">
+                          <div><span className="font-medium">Tên:</span> {stop.name}</div>
+                          <div><span className="font-medium">Địa chỉ:</span> {stop.address}</div>
+                          <div><span className="font-medium">Thời gian:</span> {stop.time}</div>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Giờ đón
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.pickupTime}
-                    onChange={(e) => setFormData({...formData, pickupTime: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Giờ trả
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.dropoffTime}
-                    onChange={(e) => setFormData({...formData, dropoffTime: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

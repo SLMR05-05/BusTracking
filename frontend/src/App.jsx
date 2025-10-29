@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Login from './components/Login';
 import ParentsManagement from './views/ParentsManagement';
 import Overview from './views/Overview';
-import Drivers from './views/driver/Drivers';
+import Drivers from './views/Drivers';
 import Students from './views/Students';
 import Buses from './views/Buses';
 import RoutesManagement from './views/Routes';
@@ -13,6 +13,7 @@ import Settings from './views/Settings';
 import DriverDashboard from './views/DriverDashboard';
 import ParentDashboard from './views/ParentDashboard';
 import ParentHistory from './views/ParentHistory';
+import ParentTracking from './views/ParentTracking';
 import Schedule from './views/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -114,6 +115,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['parent']}>
                   <ParentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-tracking"
+              element={
+                <PrivateRoute allowedRoles={['parent']}>
+                  <ParentTracking />
                 </PrivateRoute>
               }
             />

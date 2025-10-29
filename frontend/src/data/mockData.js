@@ -10,8 +10,7 @@ export const mockStudents = [
     parentId: 1,
     busId: 'BS-001',
     routeId: 'RT-001',
-    pickupStopId: 1,
-    dropoffStopId: 1,
+    stopId: 1,
     pickupTime: '06:30',
     dropoffTime: '17:00',
     status: 'active'
@@ -26,8 +25,7 @@ export const mockStudents = [
     parentId: 2,
     busId: 'BS-002',
     routeId: 'RT-002',
-    pickupStopId: 4,
-    dropoffStopId: 4,
+    stopId: 4,
     pickupTime: '06:45',
     dropoffTime: '17:15',
     status: 'active'
@@ -42,8 +40,7 @@ export const mockStudents = [
     parentId: 3,
     busId: 'BS-001',
     routeId: 'RT-001',
-    pickupStopId: 2,
-    dropoffStopId: 2,
+    stopId: 2,
     pickupTime: '06:30',
     dropoffTime: '17:00',
     status: 'inactive'
@@ -58,8 +55,7 @@ export const mockStudents = [
     parentId: 4,
     busId: '',
     routeId: '',
-    pickupStopId: null,
-    dropoffStopId: null,
+    stopId: null,
     pickupTime: '',
     dropoffTime: '',
     status: 'active'
@@ -74,8 +70,7 @@ export const mockStudents = [
     parentId: 5,
     busId: '',
     routeId: '',
-    pickupStopId: null,
-    dropoffStopId: null,
+    stopId: null,
     pickupTime: '',
     dropoffTime: '',
     status: 'active'
