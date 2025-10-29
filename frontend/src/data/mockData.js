@@ -412,3 +412,130 @@ export const mockTracking = [
     direction: 'Bắc'
   }
 ];
+// 6. Lịch chạy (Schedule)
+export const mockSchedules = [
+  {
+    id: 1,
+    scheduleId: 'SCH001',
+    busId: 'BS-001',
+    driverId: 1,
+    routeId: 'RT-001',
+     routeName: "Tuyến A - Quận 1",
+    shift: 'Ca sáng',
+    startTime: '2024-01-20T06:30:00',
+    endTime: '2024-01-20T07:15:00',
+    studentCount: 24,
+    status: 'completed', // completed | upcoming | in_progress
+     stops: [
+      { id: 1, name: "Trạm 1 - Bến Thành", eta: "06:30", students: 8, status: "Đã đến" },
+      { id: 2, name: "Trạm 2 - Nhà Thờ Đức Bà", eta: "06:45", students: 10, status: "Đã đến" },
+      { id: 3, name: "Trường DEF", eta: "07:15", students: 6, status: "Đã đến" },
+    ],
+  },
+  {
+    id: 2,
+    scheduleId: 'SCH002',
+    busId: 'BS-001',
+    driverId: 1,
+    routeId: 'RT-001',
+     routeName: "Tuyến A - Quận 1",
+    shift: 'Ca chiều',
+    startTime: '2024-01-20T16:00:00',
+    endTime: '2024-01-20T16:45:00',
+    studentCount: 24,
+    status: 'upcoming',
+    stops: [
+      { id: 1, name: "Trường DEF", eta: "16:00", students: 24, status: "Chưa đến" },
+      { id: 2, name: "Trạm 3 - Công Viên Tao Đàn", eta: "16:15", students: 6, status: "Chưa đến" },
+      { id: 3, name: "Trạm 2 - Nhà Thờ Đức Bà", eta: "16:25", students: 10, status: "Chưa đến" },
+      { id: 4, name: "Trạm 1 - Bến Thành", eta: "16:35", students: 8, status: "Chưa đến" },
+    ],
+  }
+];
+
+// 7. Điểm danh học sinh (Attendance)
+export const mockAttendance = [
+  {
+    id: 1,
+    scheduleId: 'SCH001',
+    studentId: 'HS001',
+    status: 'LenXe', // LenXe | XuongXe | Vang
+    time: '2024-01-20T06:35:00'
+  },
+  {
+    id: 2,
+    scheduleId: 'SCH001',
+    studentId: 'HS002',
+    status: 'LenXe',
+    time: '2024-01-20T06:40:00'
+  },
+  {
+    id: 3,
+    scheduleId: 'SCH001',
+    studentId: 'HS003',
+    status: 'Vang',
+    time: null
+  }
+];
+
+// 8. Sự cố (Incidents)
+export const mockIncidents = [
+  {
+    id: 1,
+    incidentId: 'INC001',
+    busId: 'BS-001',
+    driverId: 1,
+    routeId: 'RT-001',
+    type: 'Hư hỏng lốp xe',
+    description: 'Phát hiện lốp xe bị xì hơi khi đến trạm 2.',
+    time: '2024-01-19T06:45:00',
+    status: 'Đã xử lý'
+  },
+  {
+    id: 2,
+    incidentId: 'INC002',
+    busId: 'BS-002',
+    driverId: 2,
+    routeId: 'RT-002',
+    type: 'Trễ giờ khởi hành',
+    description: 'Tài xế đến muộn do kẹt xe khu vực Nguyễn Văn Linh.',
+    time: '2024-01-20T06:35:00',
+    status: 'Mới'
+  }
+];
+
+// 9. Tin nhắn (Messages)
+export const mockMessages = [
+  {
+    id: 1,
+    sender: 'Admin',
+    receiver: 'Trần Văn Tài',
+    content: 'Anh Tài, nhớ kiểm tra lốp trước khi xuất phát nhé!',
+    timestamp: '2024-01-19T18:00:00'
+  },
+  {
+    id: 2,
+    sender: 'Trần Văn Tài',
+    receiver: 'Admin',
+    content: 'Đã kiểm tra xong xe, mọi thứ ổn định.',
+    timestamp: '2024-01-19T18:15:00'
+  },
+  {
+    id: 3,
+    sender: 'Phụ huynh Nguyễn Thị Lan',
+    receiver: 'Trần Văn Tài',
+    content: 'Nhờ bác tài cho bé An xuống trạm sớm 5 phút chiều nay nhé.',
+    timestamp: '2024-01-20T10:00:00'
+  }
+];
+
+// 10. Thống kê tổng quan (Stats)
+export const mockStats = {
+  todayTrips: 2,
+  studentsTransported: 24,
+  onTimeRate: '100%',
+  distanceTraveled: '31 km',
+  completedTrips: 10,
+  totalIncidents: 2,
+  lastUpdated: '2024-01-20T18:00:00'
+};

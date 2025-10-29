@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Login from './components/Login';
 import ParentsManagement from './views/ParentsManagement';
 import Overview from './views/Overview';
-import Drivers from './views/Drivers';
+import Drivers from './views/driver/Drivers';
 import Students from './views/Students';
 import Buses from './views/Buses';
 import RoutesManagement from './views/Routes';
