@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockTracking, mockParents } from '../data/mockData';
-import { useAuth } from '../contexts/AuthContext';
+import { mockStudents, mockTracking, mockParents } from '../../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 import { MapPin, Clock, Navigation, User, Phone, RefreshCw } from 'lucide-react';
+import MapView from "../../views/common/MapView";
 
 export default function ParentTracking() {
   const { user } = useAuth();
@@ -163,29 +164,21 @@ export default function ParentTracking() {
             </div>
 
             {/* Map */}
-            {showMap && (
-              <div className="mb-6">
-                <div className="h-64 bg-gray-100 rounded-lg overflow-hidden relative">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4326!2d106.6297!3d10.8231!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sBen%20Thanh%20Market!5e0!3m2!1sen!2s!4v1703123456789!5m2!1sen!2s"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Bus Location"
-                  ></iframe>
-                  
-                  {/* Bus marker */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg animate-pulse">
-                      🚌
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+           {showMap && (
+  <div className="mb-6">
+    <div className="h-96 rounded-lg overflow-hidden">
+      <MapView
+        position={{
+          lat: busInfo?.lat || 10.776,
+          lng: busInfo?.lng || 106.700,
+        }}
+        markerLabel={`🚌 ${busInfo?.busId || "Xe buýt"}`}
+        popupText={`Tài xế: ${busInfo?.driverName || "Không rõ"} • ${busInfo?.status || "N/A"}`}
+      />
+    </div>
+  </div>
+)}
+
 
             {/* Driver Info */}
             <div className="bg-gray-50 rounded-lg p-4">
@@ -246,7 +239,6 @@ export default function ParentTracking() {
             className="bg-green-50 hover:bg-green-100 text-green-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
           >
             <Phone size={20} />
-            Gọi cho tài xế
           </button>
         </div>
       </div>

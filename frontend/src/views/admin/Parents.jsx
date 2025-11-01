@@ -1,36 +1,30 @@
 import React, { useState } from 'react';
-import { mockStudents } from '../data/mockData';
-
+import { mockStudents } from '../../data/mockData';
+import {Plus} from 'lucide-react';
 export default function ParentsManagement() {
   const [parents, setParents] = useState([
     {
-      id: 1,
+      id: 'PH00001',
       name: 'Nguyễn Thị Hoa',
       phone: '0987654321',
-      email: 'hoa.nguyen@email.com',
       address: '123 Đường Nguyễn Văn Cừ, Quận 5, TP.HCM',
       children: ['Nguyễn Văn An', 'Nguyễn Thị Bình'],
-      status: 'active',
       createdAt: '2024-01-15'
     },
     {
-      id: 2,
+      id: 'PH00002',
       name: 'Trần Văn Minh',
       phone: '0987654322',
-      email: 'minh.tran@email.com',
       address: '456 Đường Lê Văn Việt, Quận 9, TP.HCM',
       children: ['Trần Thị Lan'],
-      status: 'active',
       createdAt: '2024-01-20'
     },
     {
-      id: 3,
+      id: 'PH00003',
       name: 'Lê Thị Mai',
       phone: '0987654323',
-      email: 'mai.le@email.com',
       address: '789 Đường Nguyễn Thị Minh Khai, Quận 3, TP.HCM',
       children: ['Lê Hoàng Nam'],
-      status: 'inactive',
       createdAt: '2024-01-10'
     }
   ]);
@@ -40,9 +34,7 @@ export default function ParentsManagement() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
-    address: '',
-    status: 'active'
+    address: ''
   });
 
   const handleSubmit = (e) => {
@@ -67,15 +59,17 @@ export default function ParentsManagement() {
     setFormData({
       name: '',
       phone: '',
-      email: '',
-      address: '',
-      status: 'active'
+      address: ''
     });
   };
 
   const handleEdit = (parent) => {
     setEditingParent(parent);
-    setFormData(parent);
+    setFormData({
+      name: parent.name,
+      phone: parent.phone,
+      address: parent.address
+    });
     setShowModal(true);
   };
 
@@ -83,16 +77,6 @@ export default function ParentsManagement() {
     if (window.confirm('Bạn có chắc chắn muốn xóa phụ huynh này?')) {
       setParents(parents.filter(p => p.id !== id));
     }
-  };
-
-  const getStatusColor = (status) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-gray-100 text-gray-800';
-  };
-
-  const getStatusText = (status) => {
-    return status === 'active' ? 'Hoạt động' : 'Tạm dừng';
   };
 
   return (
@@ -105,15 +89,15 @@ export default function ParentsManagement() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
-          <span>👪</span>
+          <Plus size={20} />
           Thêm phụ huynh
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
@@ -164,7 +148,7 @@ export default function ParentsManagement() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -185,9 +169,6 @@ export default function ParentsManagement() {
                   Con
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thao tác
                 </th>
               </tr>
@@ -201,11 +182,8 @@ export default function ParentsManagement() {
                       <div className="text-sm text-gray-500">ID: {parent.id}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm text-gray-900">{parent.phone}</div>
-                      <div className="text-sm text-gray-500">{parent.email}</div>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {parent.phone}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {parent.address}
@@ -217,11 +195,6 @@ export default function ParentsManagement() {
                     <div className="text-xs text-gray-500">
                       {parent.children.join(', ')}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(parent.status)}`}>
-                      {getStatusText(parent.status)}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
@@ -262,36 +235,22 @@ export default function ParentsManagement() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Số điện thoại
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               </div>
 
               <div>
@@ -302,23 +261,9 @@ export default function ParentsManagement() {
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Trạng thái
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Tạm dừng</option>
-                </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
@@ -334,7 +279,7 @@ export default function ParentsManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingParent ? 'Cập nhật' : 'Thêm mới'}
                 </button>
@@ -346,3 +291,8 @@ export default function ParentsManagement() {
     </div>
   );
 }
+
+
+      
+
+      

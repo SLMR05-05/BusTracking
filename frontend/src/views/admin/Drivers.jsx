@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { mockDrivers } from '../data/mockData';
+import { mockDrivers } from '../../data/mockData';
 import { User, UserCheck, UserX, Plus, Calendar, Phone, CreditCard } from 'lucide-react';
 
 export default function Drivers() {
@@ -10,12 +10,12 @@ export default function Drivers() {
     name: '',
     driverId: '',
     phone: '',
+    sccd: '',         
     licenseNumber: '',
-    licenseExpiry: '',
     experience: '',
     address: '',
-    status: 'active'
   });
+
 
 
   const handleSubmit = (e) => {
@@ -47,13 +47,14 @@ export default function Drivers() {
       name: '',
       driverId: '',
       phone: '',
+      sccd: '',         
       licenseNumber: '',
-      licenseExpiry: '',
       experience: '',
       address: '',
       status: 'active'
     });
   };
+
 
   const handleEdit = (driver) => {
     setEditingDriver(driver);
@@ -62,7 +63,7 @@ export default function Drivers() {
       driverId: driver.driverId,
       phone: driver.phone,
       licenseNumber: driver.licenseNumber,
-      licenseExpiry: driver.licenseExpiry,
+      SCCD: driver.SCCD,
       experience: driver.experience,
       address: driver.address,
       status: driver.status
@@ -76,16 +77,6 @@ export default function Drivers() {
     if (window.confirm('Bạn có chắc chắn muốn xóa tài xế này?')) {
       setDrivers(drivers.filter(d => d.id !== id));
     }
-  };
-
-
-
-  const isLicenseExpiringSoon = (expiryDate) => {
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    const diffTime = expiry - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 90; // Cảnh báo nếu còn 3 tháng
   };
 
   return (
@@ -105,59 +96,6 @@ export default function Drivers() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Tổng tài xế</div>
-              <div className="text-2xl font-bold text-gray-900">{drivers.length}</div>
-            </div>
-            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-              <User size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Đang hoạt động</div>
-              <div className="text-2xl font-bold text-green-600">
-                {drivers.filter(d => d.status === 'active').length}
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center text-white">
-              <UserCheck size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Tạm dừng</div>
-              <div className="text-2xl font-bold text-orange-600">
-                {drivers.filter(d => d.status === 'inactive').length}
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white">
-              <UserX size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Bằng lái sắp hết hạn</div>
-              <div className="text-2xl font-bold text-orange-600">
-                {drivers.filter(d => isLicenseExpiringSoon(d.licenseExpiry)).length}
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white">
-              <CreditCard size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -169,6 +107,9 @@ export default function Drivers() {
                   Tài xế
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Số căn cước
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bằng lái
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -176,9 +117,6 @@ export default function Drivers() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Địa chỉ
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thao tác
@@ -203,31 +141,17 @@ export default function Drivers() {
                       </div>
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {driver.sccd}  {/* hiển thị SCCD */}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{driver.licenseNumber}</div>
-                    <div className={`text-sm flex items-center gap-1 ${
-                      isLicenseExpiringSoon(driver.licenseExpiry) 
-                        ? 'text-orange-600' 
-                        : 'text-gray-500'
-                    }`}>
-                      <Calendar size={12} />
-                      Hết hạn: {new Date(driver.licenseExpiry).toLocaleDateString('vi-VN')}
-                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {driver.experience}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{driver.address}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      driver.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-orange-100 text-orange-800'
-                    }`}>
-                      {driver.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
@@ -248,6 +172,7 @@ export default function Drivers() {
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       </div>
@@ -260,7 +185,7 @@ export default function Drivers() {
               {editingDriver ? 'Sửa thông tin tài xế' : 'Thêm tài xế mới'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Họ và tên
@@ -273,21 +198,21 @@ export default function Drivers() {
                     required
                   />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mã tài xế
+                    Số căn cước công dân
                   </label>
                   <input
                     type="text"
-                    value={formData.driverId}
-                    onChange={(e) => setFormData({...formData, driverId: e.target.value})}
+                    value={formData.SCCD}                // sửa từ licenseNumber thành SCCD
+                    onChange={(e) => setFormData({...formData, SCCD: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Số điện thoại
@@ -300,6 +225,10 @@ export default function Drivers() {
                     required
                   />
                 </div>
+              </div>
+
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Số bằng lái
@@ -308,21 +237,6 @@ export default function Drivers() {
                     type="text"
                     value={formData.licenseNumber}
                     onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ngày hết hạn bằng lái
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.licenseExpiry}
-                    onChange={(e) => setFormData({...formData, licenseExpiry: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -353,20 +267,6 @@ export default function Drivers() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Trạng thái
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Tạm dừng</option>
-                </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

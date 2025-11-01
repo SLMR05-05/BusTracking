@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockTracking, mockParents } from '../data/mockData';
-import { useAuth } from '../contexts/AuthContext';
+import { mockStudents, mockTracking, mockParents } from '../../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 import { MapPin, Clock, Navigation, User, Phone } from 'lucide-react';
 
 export default function ParentDashboard() {
@@ -195,33 +195,6 @@ export default function ParentDashboard() {
           </div>
         </div>
       )}
-
-
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Liên hệ nhanh</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={() => alert('Đang gọi cho nhà trường...')}
-            className="bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-          >
-            <Phone size={20} />
-            Gọi cho nhà trường
-          </button>
-          <button
-            onClick={() => {
-              if (busInfo) {
-                alert(`Đang gọi cho tài xế ${busInfo.driverName}...`);
-              }
-            }}
-            className="bg-green-50 hover:bg-green-100 text-green-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-          >
-            <Phone size={20} />
-            Gọi cho tài xế
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

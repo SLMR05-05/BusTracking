@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockParents } from '../data/mockData';
-import { useAuth } from '../contexts/AuthContext';
+import { mockStudents, mockParents } from '../../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 import { Clock, MapPin, User, Calendar, Filter, Search } from 'lucide-react';
 
 export default function ParentHistory() {

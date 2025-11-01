@@ -8,7 +8,7 @@ import {
   MapPin,
   Navigation,
   UserCheck,
-  Settings,
+  Route,
   LogOut,
   Calendar,
   Clock
@@ -24,16 +24,17 @@ export default function Sidebar() {
     { key: 'students', label: 'Học sinh', icon: Users, path: '/students' },
     { key: 'drivers', label: 'Tài xế', icon: User, path: '/drivers' },
     { key: 'buses', label: 'Xe buýt', icon: Bus, path: '/buses' },
-    { key: 'routes', label: 'Tuyến đường', icon: MapPin, path: '/routes' },
+    { key: 'stations', label: 'Trạm', icon: MapPin, path: '/stations' },
+    { key: 'routes', label: 'Tuyến đường', icon: Route, path: '/routes' },
     { key: 'schedule', label: 'Lịch trình', icon: Calendar, path: '/schedule' },
     { key: 'tracking', label: 'Theo dõi', icon: Navigation, path: '/tracking' },
     { key: 'parents', label: 'Phụ huynh', icon: UserCheck, path: '/parents' },
-    { key: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
+    // { key: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
   ];
 
   const driverNav = [
     { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/driver-dashboard' },
-    { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/driver-tracking' },
+    // { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/driver-tracking' },
     { key: 'schedule', label: 'Lịch trình', icon: MapPin, path: '/driver-schedule' },
   ];
 
