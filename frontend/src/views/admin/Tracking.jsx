@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { mockTracking, mockBuses, mockDrivers, mockRoutes } from '../data/mockData';
+import { mockTracking, mockBuses, mockDrivers, mockRoutes } from '../../data/mockData';
 import { MapPin, Navigation, Eye, EyeOff, Bell, AlertTriangle, MessageSquare, Clock, Users, Route } from 'lucide-react';
-
+import MapView from "../../views/common/MapView";
 export default function Tracking() {
   const [trackingData, setTrackingData] = useState(mockTracking);
   const [selectedBus, setSelectedBus] = useState(null);
@@ -283,17 +283,12 @@ export default function Tracking() {
           <div className="relative">
             {/* Map Container */}
             <div className="h-96 bg-gray-100 relative overflow-hidden">
-              {/* Google Maps Embed */}
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125405.90356798308!2d106.58493087226562!3d10.823099000000003!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317529292e8d3dd1%3A0xf15f5aad773c112b!2sHo%20Chi%20Minh%20City%2C%20Vietnam!5e0!3m2!1sen!2s!4v1703123456789!5m2!1sen!2s"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Bus Tracking Map"
-              ></iframe>
+              <MapView
+                trackingData={trackingData} 
+                focusedBus={focusedBus}
+                setFocusedBus={setFocusedBus}
+              />
+
 
               {/* Map Controls
               <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-2">

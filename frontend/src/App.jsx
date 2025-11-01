@@ -2,19 +2,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './components/Login';
-import ParentsManagement from './views/ParentsManagement';
-import Overview from './views/Overview';
-import Drivers from './views/Drivers';
-import Students from './views/Students';
-import Buses from './views/Buses';
-import RoutesManagement from './views/Routes';
-import Tracking from './views/Tracking';
-import Settings from './views/Settings';
-import DriverDashboard from './views/DriverDashboard';
-import ParentDashboard from './views/ParentDashboard';
-import ParentHistory from './views/ParentHistory';
-import ParentTracking from './views/ParentTracking';
-import Schedule from './views/Schedule';
+import ParentsManagement from './views/admin/Parents';
+import Overview from './views/admin/Overview';
+import Drivers from './views/admin/Drivers';
+import Students from './views/admin/Students';
+import Buses from './views/admin/Buses';
+import RoutesManagement from './views/admin/Routes';
+import Tracking from './views/admin/Tracking';
+import Stations from './views/admin/Stations';
+import DriverDashboard from './views/driver/DriverDashboard';
+import DriverTracking from './views/driver/DriverTracking';
+import ParentDashboard from './views/parent/ParentDashboard';
+import ParentHistory from './views/parent/ParentHistory';
+import ParentTracking from './views/parent/ParentTracking';
+import Schedule from './views/admin/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -75,10 +76,10 @@ function App() {
               }
             />
             <Route
-              path="/settings"
+              path="/stations"
               element={
                 <PrivateRoute allowedRoles={['admin']}>
-                  <Settings />
+                  <Stations />
                 </PrivateRoute>
               }
             />
@@ -105,6 +106,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['driver']}>
                   <DriverDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/driver-tracking"
+              element={
+                <PrivateRoute allowedRoles={['driver']}>
+                  <DriverTracking />
                 </PrivateRoute>
               }
             />

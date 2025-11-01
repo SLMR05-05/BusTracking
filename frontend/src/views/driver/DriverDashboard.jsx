@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockTracking } from '../data/mockData';
-import { useAuth } from '../contexts/AuthContext';
+import { mockStudents, mockTracking } from '../../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 import { Clock, Users, MapPin, AlertTriangle, CheckCircle, MessageSquare, Navigation } from 'lucide-react';
 
 export default function DriverDashboard() {
