@@ -17,11 +17,8 @@ import ParentHistory from './views/parent/ParentHistory';
 import ParentTracking from './views/parent/ParentTracking';
 import Schedule from './views/admin/Schedule';
 import PrivateRoute from './components/PrivateRoute';
-// import TheoDoiXe from './views/DriverTracking';
-// import DriverTable from './views/DriverSchedule';
 // import DriverTracking from './views/DriverTracking';
-// import DriverSchedule from './views/DriverTracking';
-// import ParentTracking from './views/ParentTracking';
+import DriverSchedule from './views/DriverSchedule';
 
 function App() {
   return (
@@ -119,6 +116,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['driver']}>
                   <DriverTracking />
+                </PrivateRoute>
+              }
+            />
+             <Route
+              path="/driver-schedule"
+              element={
+                <PrivateRoute allowedRoles={['driver']}>
+                  <DriverSchedule />
                 </PrivateRoute>
               }
             />
