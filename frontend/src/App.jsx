@@ -17,11 +17,11 @@ import ParentHistory from './views/parent/ParentHistory';
 import ParentTracking from './views/parent/ParentTracking';
 import Schedule from './views/admin/Schedule';
 import PrivateRoute from './components/PrivateRoute';
-import TheoDoiXe from './views/DriverTracking';
-import DriverTable from './views/DriverSchedule';
-import DriverTracking from './views/DriverTracking';
-import DriverSchedule from './views/DriverTracking';
-import ParentTracking from './views/ParentTracking';
+// import TheoDoiXe from './views/DriverTracking';
+// import DriverTable from './views/DriverSchedule';
+// import DriverTracking from './views/DriverTracking';
+// import DriverSchedule from './views/DriverTracking';
+// import ParentTracking from './views/ParentTracking';
 
 function App() {
   return (
