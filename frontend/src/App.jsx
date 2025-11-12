@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Login from './components/Login';
 import ParentsManagement from './views/ParentsManagement';
 import Overview from './views/Overview';
-import Drivers from './views/driver/Drivers';
+import Drivers from './views/Drivers';
 import Students from './views/Students';
 import Buses from './views/Buses';
 import RoutesManagement from './views/Routes';
@@ -15,6 +15,11 @@ import ParentDashboard from './views/ParentDashboard';
 import ParentHistory from './views/ParentHistory';
 import Schedule from './views/Schedule';
 import PrivateRoute from './components/PrivateRoute';
+import TheoDoiXe from './views/DriverTracking';
+import DriverTable from './views/DriverSchedule';
+import DriverTracking from './views/DriverTracking';
+import DriverSchedule from './views/DriverTracking';
+import ParentTracking from './views/ParentTracking';
 
 function App() {
   return (
@@ -107,7 +112,22 @@ function App() {
                 </PrivateRoute>
               }
             />
-
+            <Route
+              path="/driver-tracking"
+              element={
+                <PrivateRoute allowedRoles={['driver']}>
+                  <DriverSchedule />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/driver-schedule"
+              element={
+                <PrivateRoute allowedRoles={['driver']}>
+                  <DriverTable />
+                </PrivateRoute>
+              }
+            />
             {/* Parent Routes */}
             <Route
               path="/parent-dashboard"
@@ -122,6 +142,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['parent']}>
                   <ParentHistory />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent"
+              element={
+                <PrivateRoute allowedRoles={['parent']}>
+                  <ParentTracking />
                 </PrivateRoute>
               }
             />
