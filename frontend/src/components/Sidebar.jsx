@@ -40,7 +40,6 @@ export default function Sidebar() {
 
   const parentNav = [
     { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/parent-dashboard' },
-    // { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/parent-tracking' },
     { key: 'history', label: 'Lịch sử', icon: Clock, path: '/parent-history' },
   ];
 
@@ -107,7 +106,7 @@ export default function Sidebar() {
           })}
         </div>
       </nav>
-
+ 
       {/* Logout */}
       <div className="p-4 border-t">
         <button
