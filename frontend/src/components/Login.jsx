@@ -8,7 +8,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login, users } = useAuth();
   const navigate = useNavigate();
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (login(username, password)) {

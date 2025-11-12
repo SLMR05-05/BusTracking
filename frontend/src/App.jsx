@@ -13,6 +13,7 @@ import Settings from './views/Settings';
 import DriverDashboard from './views/DriverDashboard';
 import ParentDashboard from './views/ParentDashboard';
 import ParentHistory from './views/ParentHistory';
+import ParentTracking from './views/ParentTracking';
 import Schedule from './views/Schedule';
 import PrivateRoute from './components/PrivateRoute';
 import TheoDoiXe from './views/DriverTracking';
@@ -134,6 +135,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['parent']}>
                   <ParentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-tracking"
+              element={
+                <PrivateRoute allowedRoles={['parent']}>
+                  <ParentTracking />
                 </PrivateRoute>
               }
             />
