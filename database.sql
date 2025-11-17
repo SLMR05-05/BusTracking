@@ -1,182 +1,185 @@
--- 1. Người dùng
-CREATE TABLE UserAccount (
-    UserId INT AUTO_INCREMENT PRIMARY KEY,
-    Username VARCHAR(50) UNIQUE NOT NULL,
-    PasswordHash VARCHAR(255) NOT NULL,
-    Role ENUM('Admin','Driver','Parent') NOT NULL,
-    Email VARCHAR(100),
-    Phone VARCHAR(20),
-    TrangThai ENUM('Active','Inactive') DEFAULT 'Active'
-) ENGINE=InnoDB;
+CREATE DATABASE quanlyxebuyt;
+USE quanlyxebuyt;
 
--- 2. Trường học
-CREATE TABLE TruongHoc (
-    TruongId INT AUTO_INCREMENT PRIMARY KEY,
-    TenTruong VARCHAR(100) NOT NULL,
-    DiaChi VARCHAR(200),
-    SoDienThoai VARCHAR(20)
-) ENGINE=InnoDB;
+CREATE TABLE canhbaosuco (
+  MaCB varchar(50) NOT NULL,
+  MaLT varchar(50),
+  MaTX varchar(50),
+  NoiDungSuCo varchar(255),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaCB)
+);
 
--- 3. Học sinh
-CREATE TABLE HocSinh (
-    HocSinhId INT AUTO_INCREMENT PRIMARY KEY,
-    HoTen VARCHAR(100) NOT NULL,
-    NgaySinh DATE,
-    Lop VARCHAR(20),
-    TruongId INT,
-    ParentId INT,
-    SoDienThoaiPH VARCHAR(20),
-    DiaChiNha VARCHAR(200),
-    FOREIGN KEY (TruongId) REFERENCES TruongHoc(TruongId),
-    FOREIGN KEY (ParentId) REFERENCES UserAccount(UserId)
-) ENGINE=InnoDB;
+CREATE TABLE chitietlichtrinh (
+  MaCTLT varchar(50) NOT NULL,
+  MaLT varchar(50),
+  MaTram varchar(50),
+  ThuTu varchar(50),
+  TrangThaiQua VARCHAR(1) DEFAULT '0',
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaCTLT)
+);
 
--- 4. Xe buýt
-CREATE TABLE XeBuyt (
-    XeId INT AUTO_INCREMENT PRIMARY KEY,
-    BienSo VARCHAR(20) UNIQUE NOT NULL,
-    DongXe VARCHAR(50),
-    SoChoNgoi INT,
-    TrangThai ENUM('HoatDong','BaoTri','NgungHoatDong') DEFAULT 'HoatDong'
-) ENGINE=InnoDB;
+CREATE TABLE hocsinh (
+  MaHS varchar(50) NOT NULL,
+  MaPH varchar(50),
+  MaTram varchar(50),
+  TenHS varchar(100),
+  Lop varchar(50),
+  DiaChi varchar(255),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaHS)
+);
 
--- 5. Tài xế
-CREATE TABLE TaiXe (
-    TaiXeId INT AUTO_INCREMENT PRIMARY KEY,
-    HoTen VARCHAR(100) NOT NULL,
-    SoDienThoai VARCHAR(20),
-    SoBangLai VARCHAR(30) UNIQUE NOT NULL,
-    SoNamKinhNghiem INT
-) ENGINE=InnoDB;
+CREATE TABLE lichtrinh (
+  MaLT varchar(50) NOT NULL,
+  MaXB varchar(50),
+  MaTD varchar(50),
+  MaTX varchar(50),
+  NgayChay varchar(50),
+  GioBatDau varchar(50),
+  GioKetThuc varchar(50),
+  TrangThai varchar(50),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaLT)
+);
 
--- 6. Phụ xe
-CREATE TABLE PhuXe (
-    PhuXeId INT AUTO_INCREMENT PRIMARY KEY,
-    HoTen VARCHAR(100) NOT NULL,
-    SoDienThoai VARCHAR(20)
-) ENGINE=InnoDB;
+CREATE TABLE phuhuynh (
+  MaPH varchar(50) NOT NULL,
+  MaTK varchar(50),
+  TenPH varchar(100),
+  SDT varchar(20),
+  DiaChi varchar(255),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaPH)
+);
 
--- 7. Tuyến đường
-CREATE TABLE TuyenDuong (
-    TuyenId INT AUTO_INCREMENT PRIMARY KEY,
-    TenTuyen VARCHAR(100),
-    DiemBatDau VARCHAR(100),
-    DiemKetThuc VARCHAR(100),
-    QuangDuong DECIMAL(5,2),
-    ThoiGianDuKien INT
-) ENGINE=InnoDB;
+CREATE TABLE taikhoan (
+  MaTK varchar(50) NOT NULL,
+  MaVT varchar(50),
+  TenDangNhap varchar(100),
+  MatKhau varchar(255),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaTK)
+);
 
--- 8. Trạm dừng
-CREATE TABLE TramDung (
-    TramId INT AUTO_INCREMENT PRIMARY KEY,
-    TenTram VARCHAR(100) NOT NULL,
-    ViDo DECIMAL(10,6),
-    KinhDo DECIMAL(10,6),
-    DiaChi VARCHAR(200)
-) ENGINE=InnoDB;
+CREATE TABLE taixe (
+  MaTX varchar(50) NOT NULL,
+  MaTK varchar(50),
+  TenTX varchar(100),
+  SoCCCD varchar(50),
+  BLX varchar(50),
+  DiaChi varchar(255),
+  SDT varchar(20),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaTX)
+);
 
--- 9. Chi tiết tuyến
-CREATE TABLE ChiTietTuyen (
-    TuyenId INT,
-    TramId INT,
-    ThuTu INT,
-    PRIMARY KEY (TuyenId, TramId),
-    FOREIGN KEY (TuyenId) REFERENCES TuyenDuong(TuyenId),
-    FOREIGN KEY (TramId) REFERENCES TramDung(TramId)
-) ENGINE=InnoDB;
+CREATE TABLE thongbao (
+  MaTB varchar(50) NOT NULL,
+  MaLT varchar(50),
+  MaPH varchar(50),
+  NoiDung varchar(255),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaTB)
+);
 
--- 10. Phân công học sinh
-CREATE TABLE PhanCongHocSinh (
-    HocSinhId INT,
-    XeId INT,
-    TramLenId INT,
-    TramXuongId INT,
-    PRIMARY KEY (HocSinhId, XeId),
-    FOREIGN KEY (HocSinhId) REFERENCES HocSinh(HocSinhId),
-    FOREIGN KEY (XeId) REFERENCES XeBuyt(XeId),
-    FOREIGN KEY (TramLenId) REFERENCES TramDung(TramId),
-    FOREIGN KEY (TramXuongId) REFERENCES TramDung(TramId)
-) ENGINE=InnoDB;
+CREATE TABLE tram (
+  MaTram varchar(50) NOT NULL,
+  MaTD varchar(50),
+  TenTram varchar(100),
+  DiaChi varchar(255),
+  KinhDo varchar(50),
+  ViDo varchar(50),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaTram)
+);
 
--- 11. Lịch chạy
-CREATE TABLE LichChay (
-    LichId INT AUTO_INCREMENT PRIMARY KEY,
-    TuyenId INT,
-    XeId INT,
-    TaiXeId INT,
-    PhuXeId INT,
-    GioKhoiHanh DATETIME,
-    GioDen DATETIME,
-    FOREIGN KEY (TuyenId) REFERENCES TuyenDuong(TuyenId),
-    FOREIGN KEY (XeId) REFERENCES XeBuyt(XeId),
-    FOREIGN KEY (TaiXeId) REFERENCES TaiXe(TaiXeId),
-    FOREIGN KEY (PhuXeId) REFERENCES PhuXe(PhuXeId)
-) ENGINE=InnoDB;
+CREATE TABLE tuyenduong (
+  MaTD varchar(50) NOT NULL,
+  BatDau varchar(100),   -- dạng chuỗi
+  KetThuc varchar(100), -- dạng chuỗi
+  TenTuyenDuong varchar(100),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaTD)
+);
 
--- 12. GPS tracking
-CREATE TABLE TheoDoiGPS (
-    GPSId INT AUTO_INCREMENT PRIMARY KEY,
-    XeId INT,
-    ViDo DECIMAL(10,6),
-    KinhDo DECIMAL(10,6),
-    ThoiGian DATETIME,
-    FOREIGN KEY (XeId) REFERENCES XeBuyt(XeId)
-) ENGINE=InnoDB;
+CREATE TABLE vaitro (
+  MaVT varchar(50) NOT NULL,
+  TenVT varchar(100),
+  PRIMARY KEY (MaVT)
+);
 
--- 13. Thông báo phụ huynh
-CREATE TABLE ThongBaoPhuHuynh (
-    ThongBaoId INT AUTO_INCREMENT PRIMARY KEY,
-    HocSinhId INT,
-    LoaiThongBao ENUM('LenXe','XuongXe','DenTruong','VeNha'),
-    NoiDung VARCHAR(255),
-    ThoiGian DATETIME,
-    FOREIGN KEY (HocSinhId) REFERENCES HocSinh(HocSinhId)
-) ENGINE=InnoDB;
+CREATE TABLE vitrixe (
+  MaVTXe varchar(50) NOT NULL,
+  MaXB varchar(50),
+  KinhDo varchar(50),
+  ViDo varchar(50),
+  TrangThaiXe varchar(50),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaVTXe)
+);
 
--- 14. Điểm danh học sinh
-CREATE TABLE DiemDanhHocSinh (
-    DiemDanhId INT AUTO_INCREMENT PRIMARY KEY,
-    HocSinhId INT,
-    LichId INT,
-    TrangThai ENUM('LenXe','XuongXe','Vang'),
-    ThoiGian DATETIME,
-    FOREIGN KEY (HocSinhId) REFERENCES HocSinh(HocSinhId),
-    FOREIGN KEY (LichId) REFERENCES LichChay(LichId)
-) ENGINE=InnoDB;
+CREATE TABLE xebuyt (
+  MaXB varchar(50) NOT NULL,
+  BienSo varchar(50),
+  SucChua varchar(50),
+  TrangThai varchar(50),
+  TrangThaiXoa varchar(1),
+  PRIMARY KEY (MaXB)
+);
 
--- 15. Sự cố
-CREATE TABLE SuCo (
-    SuCoId INT AUTO_INCREMENT PRIMARY KEY,
-    LichId INT,
-    XeId INT,
-    TaiXeId INT,
-    LoaiSuCo VARCHAR(100),
-    MoTa TEXT,
-    ThoiGian DATETIME,
-    TrangThai ENUM('Moi','DangXuLy','DaXuLy') DEFAULT 'Moi',
-    FOREIGN KEY (LichId) REFERENCES LichChay(LichId),
-    FOREIGN KEY (XeId) REFERENCES XeBuyt(XeId),
-    FOREIGN KEY (TaiXeId) REFERENCES TaiXe(TaiXeId)
-) ENGINE=InnoDB;
+CREATE TABLE diemdanh (
+  MaDD varchar(50) NOT NULL,
+  MaLT varchar(50),
+  MaHS varchar(50),
+  ThoiGian datetime,
+  TrangThai VARCHAR(1) NOT NULL, -- trạng thái điểm danh: có thể là 'chưa đón', 'đã đón', ' đã trả'.
+  TrangThaiXoa VARCHAR(1) DEFAULT '0', 
+  PRIMARY KEY (MaDD)
+);
 
--- 16. Tin nhắn
-CREATE TABLE TinNhan (
-    TinNhanId INT AUTO_INCREMENT PRIMARY KEY,
-    NguoiGuiId INT,
-    NguoiNhanId INT,
-    NoiDung TEXT,
-    ThoiGian DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (NguoiGuiId) REFERENCES UserAccount(UserId),
-    FOREIGN KEY (NguoiNhanId) REFERENCES UserAccount(UserId)
-) ENGINE=InnoDB;
 
--- 17. Báo cáo
-CREATE TABLE BaoCao (
-    BaoCaoId INT AUTO_INCREMENT PRIMARY KEY,
-    LoaiBaoCao VARCHAR(100),
-    ThoiGianBatDau DATETIME,
-    ThoiGianKetThuc DATETIME,
-    FileURL VARCHAR(255),
-    TaoBoiId INT,
-    FOREIGN KEY (TaoBoiId) REFERENCES UserAccount(UserId)
-) ENGINE=InnoDB;
+-- Các ràng buộc khóa ngoại
+
+ALTER TABLE canhbaosuco
+  ADD CONSTRAINT fk_canhbaosuco_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
+  ADD CONSTRAINT fk_canhbaosuco_taixe FOREIGN KEY (MaTX) REFERENCES taixe(MaTX);
+
+ALTER TABLE chitietlichtrinh
+  ADD CONSTRAINT fk_chitietlichtrinh_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
+  ADD CONSTRAINT fk_chitietlichtrinh_tram FOREIGN KEY (MaTram) REFERENCES tram(MaTram);
+
+ALTER TABLE hocsinh
+  ADD CONSTRAINT fk_hocsinh_phuhuynh FOREIGN KEY (MaPH) REFERENCES phuhuynh(MaPH),
+  ADD CONSTRAINT fk_hocsinh_tram FOREIGN KEY (MaTram) REFERENCES tram(MaTram);
+
+ALTER TABLE lichtrinh
+  ADD CONSTRAINT fk_lichtrinh_xebuyt FOREIGN KEY (MaXB) REFERENCES xebuyt(MaXB),
+  ADD CONSTRAINT fk_lichtrinh_tuyenduong FOREIGN KEY (MaTD) REFERENCES tuyenduong(MaTD);
+
+ALTER TABLE phuhuynh
+  ADD CONSTRAINT fk_phuhuynh_taikhoan FOREIGN KEY (MaTK) REFERENCES taikhoan(MaTK);
+
+ALTER TABLE taikhoan
+  ADD CONSTRAINT fk_taikhoan_vaitro FOREIGN KEY (MaVT) REFERENCES vaitro(MaVT);
+
+ALTER TABLE taixe
+  ADD CONSTRAINT fk_taixe_taikhoan FOREIGN KEY (MaTK) REFERENCES taikhoan(MaTK);
+
+ALTER TABLE thongbao
+  ADD CONSTRAINT fk_thongbao_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
+  ADD CONSTRAINT fk_thongbao_phuhuynh FOREIGN KEY (MaPH) REFERENCES phuhuynh(MaPH);
+
+ALTER TABLE tram
+  ADD CONSTRAINT fk_tram_tuyenduong FOREIGN KEY (MaTD) REFERENCES tuyenduong(MaTD);
+
+ALTER TABLE vitrixe
+  ADD CONSTRAINT fk_vitrixe_xebuyt FOREIGN KEY (MaXB) REFERENCES xebuyt(MaXB);
+
+ALTER TABLE lichtrinh
+  ADD CONSTRAINT fk_lichtrinh_taixe FOREIGN KEY (MaTX) REFERENCES taixe(MaTX);
+
+ALTER TABLE diemdanh
+  ADD CONSTRAINT fk_diemdanh_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
+  ADD CONSTRAINT fk_diemdanh_hocsinh FOREIGN KEY (MaHS) REFERENCES hocsinh(MaHS);

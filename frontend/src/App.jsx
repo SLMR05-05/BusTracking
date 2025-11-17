@@ -2,16 +2,23 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './components/Login';
-import Parents from './views/Parents';
-import ParentsManagement from './views/ParentsManagement';
-import Overview from './views/Overview';
-import Drivers from './views/Drivers';
-import Students from './views/Students';
-import Buses from './views/Buses';
-import RoutesManagement from './views/Routes';
-import Tracking from './views/Tracking';
-import Settings from './views/Settings';
+import ParentsManagement from './views/admin/Parents';
+import Overview from './views/admin/Overview';
+import Drivers from './views/admin/Drivers';
+import Students from './views/admin/Students';
+import Buses from './views/admin/Buses';
+import RoutesManagement from './views/admin/Routes';
+import Tracking from './views/admin/Tracking';
+import Stations from './views/admin/Stations';
+import DriverDashboard from './views/driver/DriverDashboard';
+import DriverTracking from './views/driver/DriverTracking';
+import ParentDashboard from './views/parent/ParentDashboard';
+import ParentHistory from './views/parent/ParentHistory';
+import ParentTracking from './views/parent/ParentTracking';
+import Schedule from './views/admin/Schedule';
 import PrivateRoute from './components/PrivateRoute';
+// import DriverTracking from './views/DriverTracking';
+import DriverSchedule from './views/DriverSchedule';
 
 function App() {
   return (
@@ -25,7 +32,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Overview />
                 </PrivateRoute>
               }
@@ -33,7 +40,7 @@ function App() {
             <Route
               path="/students"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Students />
                 </PrivateRoute>
               }
@@ -41,7 +48,7 @@ function App() {
             <Route
               path="/buses"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Buses />
                 </PrivateRoute>
               }
@@ -49,7 +56,7 @@ function App() {
             <Route
               path="/drivers"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Drivers />
                 </PrivateRoute>
               }
@@ -57,7 +64,7 @@ function App() {
             <Route
               path="/routes"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <RoutesManagement />
                 </PrivateRoute>
               }
@@ -65,24 +72,32 @@ function App() {
             <Route
               path="/tracking"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Tracking />
                 </PrivateRoute>
               }
             />
             <Route
-              path="/settings"
+              path="/stations"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
-                  <Settings />
+                <PrivateRoute allowedRoles={['AD']}>
+                  <Stations />
                 </PrivateRoute>
               }
             />
             <Route
               path="/parents"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <ParentsManagement />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/schedule"
+              element={
+                <PrivateRoute allowedRoles={['AD']}>
+                  <Schedule />
                 </PrivateRoute>
               }
             />
@@ -91,8 +106,24 @@ function App() {
             <Route
               path="/driver-dashboard"
               element={
-                <PrivateRoute allowedRoles={['driver']}>
-                  <Drivers />
+                <PrivateRoute allowedRoles={['TX']}>
+                  <DriverDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/driver-tracking"
+              element={
+                <PrivateRoute allowedRoles={['TX']}>
+                  <DriverTracking />
+                </PrivateRoute>
+              }
+            />
+             <Route
+              path="/driver-schedule"
+              element={
+                <PrivateRoute allowedRoles={['TX']}>
+                  <DriverSchedule />
                 </PrivateRoute>
               }
             />
@@ -101,8 +132,32 @@ function App() {
             <Route
               path="/parent-dashboard"
               element={
-                <PrivateRoute allowedRoles={['parent']}>
-                  <Parents />
+                <PrivateRoute allowedRoles={['PH']}>
+                  <ParentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-tracking"
+              element={
+                <PrivateRoute allowedRoles={['PH']}>
+                  <ParentTracking />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-history"
+              element={
+                <PrivateRoute allowedRoles={['PH']}>
+                  <ParentHistory />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent"
+              element={
+                <PrivateRoute allowedRoles={['PH']}>
+                  <ParentTracking />
                 </PrivateRoute>
               }
             />
