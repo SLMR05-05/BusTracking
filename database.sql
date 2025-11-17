@@ -188,12 +188,12 @@ ALTER TABLE diemdanh
 
 
   INSERT INTO vaitro (MaVT, TenVT) VALUES
-('VT001', 'admin'),
-('VT002', 'driver'),
-('VT003', 'parent');
+('AD', 'admin'),
+('TX', 'driver'),
+('PH', 'parent');
 
 -- 2. Tạo tài khoản test
 INSERT INTO taikhoan (MaTK, MaVT, TenDangNhap, MatKhau, TrangThaiXoa) VALUES
-('TK001', 'VT001', 'admin', 'admin123', '0'),
-('TK002', 'VT002', 'driver', 'driver123', '0'),
-('TK003', 'VT003', 'parent', 'parent123', '0');
+('TK001', 'AD', 'admin', 'admin123', '0'),
+('TK002', 'TX', 'driver', 'driver123', '0'),
+('TK003', 'PH', 'parent', 'parent123', '0');

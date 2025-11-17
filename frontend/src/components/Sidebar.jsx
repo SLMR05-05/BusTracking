@@ -27,7 +27,6 @@ export default function Sidebar() {
     { key: 'routes', label: 'Tuyến đường', icon: Route, path: '/routes' },
     { key: 'stations', label: 'Trạm dừng', icon: MapPin, path: '/stations' },
     { key: 'schedule', label: 'Lịch trình', icon: Calendar, path: '/schedule' },
-    { key: 'tracking', label: 'Theo dõi', icon: Navigation, path: '/tracking' },
     { key: 'parents', label: 'Phụ huynh', icon: UserCheck, path: '/parents' },
     // { key: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
   ];
