@@ -51,11 +51,11 @@ export const login = (req, res) => {
 
     // 5. Tạo JWT token
     const token = jwt.sign(
-      { userId: user.UserId, role: user.Role },
+      { userId: user.MaTK, roleId: user.MaVT, role: user.TenVT },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-    console.log(user);
+    // console.log(user);
     // 6. Trả về thông tin user và token
     res.json({
       message: "Đăng nhập thành công",
@@ -63,8 +63,8 @@ export const login = (req, res) => {
       user: {
         id: user.MaTK,
         username: user.TenDangNhap,
+        roleId: user.MaVT,
         role: user.TenVT,
-        status: user.TrangThaiXoa,
       },
     });
   });

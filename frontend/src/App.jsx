@@ -32,7 +32,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Overview />
                 </PrivateRoute>
               }
@@ -40,7 +40,7 @@ function App() {
             <Route
               path="/students"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Students />
                 </PrivateRoute>
               }
@@ -48,7 +48,7 @@ function App() {
             <Route
               path="/buses"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Buses />
                 </PrivateRoute>
               }
@@ -56,7 +56,7 @@ function App() {
             <Route
               path="/drivers"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Drivers />
                 </PrivateRoute>
               }
@@ -64,7 +64,7 @@ function App() {
             <Route
               path="/routes"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <RoutesManagement />
                 </PrivateRoute>
               }
@@ -72,7 +72,7 @@ function App() {
             <Route
               path="/tracking"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Tracking />
                 </PrivateRoute>
               }
@@ -80,7 +80,7 @@ function App() {
             <Route
               path="/stations"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Stations />
                 </PrivateRoute>
               }
@@ -88,7 +88,7 @@ function App() {
             <Route
               path="/parents"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <ParentsManagement />
                 </PrivateRoute>
               }
@@ -96,7 +96,7 @@ function App() {
             <Route
               path="/schedule"
               element={
-                <PrivateRoute allowedRoles={['admin']}>
+                <PrivateRoute allowedRoles={['AD']}>
                   <Schedule />
                 </PrivateRoute>
               }
@@ -106,7 +106,7 @@ function App() {
             <Route
               path="/driver-dashboard"
               element={
-                <PrivateRoute allowedRoles={['driver']}>
+                <PrivateRoute allowedRoles={['TX']}>
                   <DriverDashboard />
                 </PrivateRoute>
               }
@@ -114,7 +114,7 @@ function App() {
             <Route
               path="/driver-tracking"
               element={
-                <PrivateRoute allowedRoles={['driver']}>
+                <PrivateRoute allowedRoles={['TX']}>
                   <DriverTracking />
                 </PrivateRoute>
               }
@@ -122,7 +122,7 @@ function App() {
              <Route
               path="/driver-schedule"
               element={
-                <PrivateRoute allowedRoles={['driver']}>
+                <PrivateRoute allowedRoles={['TX']}>
                   <DriverSchedule />
                 </PrivateRoute>
               }
@@ -132,7 +132,7 @@ function App() {
             <Route
               path="/parent-dashboard"
               element={
-                <PrivateRoute allowedRoles={['parent']}>
+                <PrivateRoute allowedRoles={['PH']}>
                   <ParentDashboard />
                 </PrivateRoute>
               }
@@ -140,7 +140,7 @@ function App() {
             <Route
               path="/parent-tracking"
               element={
-                <PrivateRoute allowedRoles={['parent']}>
+                <PrivateRoute allowedRoles={['PH']}>
                   <ParentTracking />
                 </PrivateRoute>
               }
@@ -148,7 +148,7 @@ function App() {
             <Route
               path="/parent-history"
               element={
-                <PrivateRoute allowedRoles={['parent']}>
+                <PrivateRoute allowedRoles={['PH']}>
                   <ParentHistory />
                 </PrivateRoute>
               }
@@ -156,7 +156,7 @@ function App() {
             <Route
               path="/parent"
               element={
-                <PrivateRoute allowedRoles={['parent']}>
+                <PrivateRoute allowedRoles={['PH']}>
                   <ParentTracking />
                 </PrivateRoute>
               }

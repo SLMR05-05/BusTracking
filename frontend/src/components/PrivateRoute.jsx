@@ -15,13 +15,13 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   }
 
   // Kiểm tra role có được phép không
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    switch(user.role) {
-      case 'admin':
+  if (allowedRoles && !allowedRoles.includes(user.roleId)) {
+    switch(user.roleId) {
+      case 'AD':
         return <Navigate to="/dashboard" replace />;
-      case 'driver':
+      case 'TX':
         return <Navigate to="/driver-dashboard" replace />;
-      case 'parent':
+      case 'PH':
         return <Navigate to="/parent-dashboard" replace />;
       default:
         return <Navigate to="/login" replace />;

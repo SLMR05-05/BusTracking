@@ -38,14 +38,15 @@ export default function Login() {
 
       // Chuyển hướng theo role
       const user = data.user;
-      switch(user.role) {
-        case 'admin':
+      switch(user.roleId) {
+        case 'AD':
+          console.log('đã vào trang admin');
           navigate('/dashboard');
           break;
-        case 'driver':
+        case 'TX':
           navigate('/driver-dashboard');
           break;
-        case 'parent':
+        case 'PH':
           navigate('/parent-dashboard');
           break;
         default:

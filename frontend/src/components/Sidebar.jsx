@@ -44,10 +44,10 @@ export default function Sidebar() {
   ];
 
   const getNavItems = () => {
-    switch (user?.role) {
-      case 'admin': return adminNav;
-      case 'driver': return driverNav;
-      case 'parent': return parentNav;
+    switch (user?.roleId) {
+      case 'AD': return adminNav;
+      case 'TX': return driverNav;
+      case 'PH': return parentNav;
       default: return adminNav;
     }
   };
