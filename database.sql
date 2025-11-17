@@ -183,3 +183,17 @@ ALTER TABLE lichtrinh
 ALTER TABLE diemdanh
   ADD CONSTRAINT fk_diemdanh_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
   ADD CONSTRAINT fk_diemdanh_hocsinh FOREIGN KEY (MaHS) REFERENCES hocsinh(MaHS);
+  
+
+
+
+  INSERT INTO vaitro (MaVT, TenVT) VALUES
+('VT001', 'admin'),
+('VT002', 'driver'),
+('VT003', 'parent');
+
+-- 2. Tạo tài khoản test
+INSERT INTO taikhoan (MaTK, MaVT, TenDangNhap, MatKhau, TrangThaiXoa) VALUES
+('TK001', 'VT001', 'admin', 'admin123', '0'),
+('TK002', 'VT002', 'driver', 'driver123', '0'),
+('TK003', 'VT003', 'parent', 'parent123', '0');

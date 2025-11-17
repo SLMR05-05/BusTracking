@@ -3,10 +3,17 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import { Plus } from "lucide-react";
 
 export default function Station() {
+  // Mock data tuyến đường
+  const mockRoutes = [
+    { id: 1, routeId: "TD001", name: "Tuyến 1 - Quận 1 đến Quận 5" },
+    { id: 2, routeId: "TD002", name: "Tuyến 2 - Quận 9 đến Thủ Đức" },
+    { id: 3, routeId: "TD003", name: "Tuyến 3 - Tân Bình đến Bình Thạnh" },
+  ];
+
   const [stations, setStations] = useState([
-    { id: 1, code: "TR001", name: "Trạm Nguyễn Văn Cừ", address: "Nguyễn Văn Cừ, Quận 5", lat: 10.762622, lng: 106.682223 },
-    { id: 2, code: "TR002", name: "Trạm Lê Văn Việt", address: "Lê Văn Việt, Quận 9", lat: 10.845321, lng: 106.794222 },
-    { id: 3, code: "TR003", name: "Trạm Nguyễn Thị Minh Khai", address: "Nguyễn Thị Minh Khai, Q1", lat: 10.776111, lng: 106.695833 },
+    { id: 1, code: "TR001", name: "Trạm Nguyễn Văn Cừ", address: "Nguyễn Văn Cừ, Quận 5", lat: 10.762622, lng: 106.682223, routeId: "TD001", routeName: "Tuyến 1 - Quận 1 đến Quận 5" },
+    { id: 2, code: "TR002", name: "Trạm Lê Văn Việt", address: "Lê Văn Việt, Quận 9", lat: 10.845321, lng: 106.794222, routeId: "TD002", routeName: "Tuyến 2 - Quận 9 đến Thủ Đức" },
+    { id: 3, code: "TR003", name: "Trạm Nguyễn Thị Minh Khai", address: "Nguyễn Thị Minh Khai, Q1", lat: 10.776111, lng: 106.695833, routeId: "TD001", routeName: "Tuyến 1 - Quận 1 đến Quận 5" },
   ]);
 
   const [showModal, setShowModal] = useState(false);
@@ -17,26 +24,36 @@ export default function Station() {
     address: "",
     lat: "",
     lng: "",
+    routeId: "",
+    routeName: "",
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Lấy tên tuyến đường
+    const selectedRoute = mockRoutes.find(r => r.routeId === formData.routeId);
+    const dataToSave = {
+      ...formData,
+      routeName: selectedRoute?.name || ""
+    };
+    
     if (editingStation) {
       setStations(
         stations.map((s) =>
-          s.id === editingStation.id ? { ...s, ...formData } : s
+          s.id === editingStation.id ? { ...s, ...dataToSave } : s
         )
       );
     } else {
       const newStation = {
         id: Math.max(...stations.map((s) => s.id)) + 1,
-        ...formData,
+        ...dataToSave,
       };
       setStations([...stations, newStation]);
     }
     setShowModal(false);
     setEditingStation(null);
-    setFormData({ code: "", name: "", address: "", lat: "", lng: "" });
+    setFormData({ code: "", name: "", address: "", lat: "", lng: "", routeId: "", routeName: "" });
   };
 
   const handleEdit = (station) => {
@@ -107,6 +124,7 @@ export default function Station() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã trạm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên trạm</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tuyến đường</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa chỉ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tọa độ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
@@ -117,6 +135,11 @@ export default function Station() {
                 <tr key={station.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-bold text-gray-900">{station.code}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{station.name}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {station.routeName}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{station.address}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {station.lat.toFixed(6)}, {station.lng.toFixed(6)}
@@ -152,20 +175,29 @@ export default function Station() {
               {editingStation ? "Sửa trạm" : "Thêm trạm mới"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mã trạm
+                  Tuyến đường <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.code}
+                <select
+                  value={formData.routeId}
                   onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value })
+                    setFormData({ ...formData, routeId: e.target.value })
                   }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                   required
-                />
-              </div> */}
+                >
+                  <option value="">-- Chọn tuyến đường --</option>
+                  {mockRoutes.map((route) => (
+                    <option key={route.id} value={route.routeId}>
+                      {route.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Trạm này sẽ thuộc về tuyến đường được chọn
+                </p>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
