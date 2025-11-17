@@ -34,7 +34,7 @@ export default function Sidebar() {
 
   const driverNav = [
     { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/driver-dashboard' },
-    // { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/driver-tracking' },
+    { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/driver-tracking' },
     { key: 'schedule', label: 'Lịch trình', icon: MapPin, path: '/driver-schedule' },
   ];
 
@@ -44,10 +44,10 @@ export default function Sidebar() {
   ];
 
   const getNavItems = () => {
-    switch (user?.role) {
-      case 'admin': return adminNav;
-      case 'driver': return driverNav;
-      case 'parent': return parentNav;
+    switch (user?.roleId) {
+      case 'AD': return adminNav;
+      case 'TX': return driverNav;
+      case 'PH': return parentNav;
       default: return adminNav;
     }
   };
