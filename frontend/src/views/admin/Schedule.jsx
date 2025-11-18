@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, Clock, Plus, Route, Trash2, MapPin, Eye, Navigation, CheckCircle, Search, X, Map as MapIcon } from 'lucide-react';
+import { Calendar, Clock, Plus, Route, Trash2, MapPin, Eye, CheckCircle, Search, X, Map as MapIcon } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -77,7 +77,6 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [searchDate, setSearchDate] = useState('');
   const [selectedScheduleIds, setSelectedScheduleIds] = useState([]);
@@ -85,12 +84,10 @@ export default function Schedule() {
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [activeTab, setActiveTab] = useState('stations');
   
-  // Tracking states
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const busMarkerRef = useRef(null);
-  const [currentStopIndex, setCurrentStopIndex] = useState(0);
-  const [isSimulating, setIsSimulating] = useState(false);
+  // Map ref for detail modal with auto-refresh
+  const detailMapRef = useRef(null);
+  const detailMapInstanceRef = useRef(null);
+  const mapRefreshIntervalRef = useRef(null);
   
   const [formData, setFormData] = useState({
     MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: ''
@@ -434,45 +431,90 @@ export default function Schedule() {
     }
   };
 
-  // Initialize map for tracking
+  // Auto refresh map data every 5 seconds when map tab is active
   useEffect(() => {
-    if (showTrackingModal && selectedSchedule && mapRef.current && !mapInstanceRef.current) {
+    if (showDetailModal && selectedSchedule && activeTab === 'map') {
+      const fetchAndUpdateMap = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${API_URL}/schedules/${selectedSchedule.MaLT}/details`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const details = await response.json();
+            
+            // Update selected schedule with new details
+            setSelectedSchedule(prev => ({
+              ...prev,
+              details: details
+            }));
+            
+            // Also update in schedules list
+            setSchedules(prevSchedules => 
+              prevSchedules.map(s => 
+                s.MaLT === selectedSchedule.MaLT ? { ...s, details } : s
+              )
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching schedule details:', error);
+        }
+      };
+
+      // Fetch immediately
+      fetchAndUpdateMap();
+      
+      // Set up interval to refresh every 5 seconds
+      mapRefreshIntervalRef.current = setInterval(fetchAndUpdateMap, 5000);
+      
+      return () => {
+        if (mapRefreshIntervalRef.current) {
+          clearInterval(mapRefreshIntervalRef.current);
+          mapRefreshIntervalRef.current = null;
+        }
+      };
+    }
+  }, [showDetailModal, selectedSchedule?.MaLT, activeTab]);
+
+  // Initialize map for detail modal
+  useEffect(() => {
+    if (showDetailModal && selectedSchedule && detailMapRef.current && !detailMapInstanceRef.current && activeTab === 'map') {
       // Create map
-      const map = L.map(mapRef.current).setView([10.7626, 106.6818], 13);
+      const map = L.map(detailMapRef.current).setView([10.7626, 106.6818], 13);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      mapInstanceRef.current = map;
+      detailMapInstanceRef.current = map;
 
       // Draw route and stations
       const stations = selectedSchedule.details || [];
       if (stations.length > 0) {
         // Add station markers
-        stations.forEach((station, index) => {
+        stations.forEach((station) => {
           const lat = parseFloat(station.ViDo);
           const lng = parseFloat(station.KinhDo);
           
           const isPassed = station.TrangThaiQua === '1';
-          const markerColor = isPassed ? 'green' : 'gray';
+          const markerColor = isPassed ? '#22c55e' : '#9ca3af';
           
           const stationIcon = L.divIcon({
             className: 'custom-station-marker',
-            html: `<div style="background-color: ${markerColor}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${station.ThuTu}</div>`,
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+            html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
           });
 
           L.marker([lat, lng], { icon: stationIcon })
-            .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}`)
+            .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
             .addTo(map);
         });
 
         // Fetch and draw real route using OSRM
         const fetchRealRoute = async () => {
           try {
-            // Build coordinates string for OSRM
             const coords = stations.map(s => `${parseFloat(s.KinhDo)},${parseFloat(s.ViDo)}`).join(';');
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
             
@@ -483,172 +525,89 @@ export default function Schedule() {
               const route = data.routes[0];
               const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
               
-              // Draw the real route
-              L.polyline(coordinates, { 
-                color: '#3b82f6', 
-                weight: 5, 
-                opacity: 0.8,
-                lineJoin: 'round'
-              }).addTo(map);
+              // Draw the route with segments colored based on completion
+              for (let i = 0; i < stations.length - 1; i++) {
+                const currentStation = stations[i];
+                const isPassed = currentStation.TrangThaiQua === '1';
+                const color = isPassed ? '#22c55e' : '#3b82f6';
+                
+                // Find segment coordinates between current and next station
+                const startIdx = coordinates.findIndex(coord => 
+                  Math.abs(coord[0] - parseFloat(currentStation.ViDo)) < 0.001 &&
+                  Math.abs(coord[1] - parseFloat(currentStation.KinhDo)) < 0.001
+                );
+                
+                if (i < stations.length - 1) {
+                  const nextStation = stations[i + 1];
+                  const endIdx = coordinates.findIndex((coord, idx) => 
+                    idx > startIdx &&
+                    Math.abs(coord[0] - parseFloat(nextStation.ViDo)) < 0.001 &&
+                    Math.abs(coord[1] - parseFloat(nextStation.KinhDo)) < 0.001
+                  );
+                  
+                  if (startIdx !== -1 && endIdx !== -1) {
+                    const segmentCoords = coordinates.slice(startIdx, endIdx + 1);
+                    L.polyline(segmentCoords, { 
+                      color: color, 
+                      weight: 5, 
+                      opacity: 0.8,
+                      lineJoin: 'round'
+                    }).addTo(map);
+                  }
+                }
+              }
               
-              // Fit bounds to route
               map.fitBounds(coordinates);
             } else {
-              // Fallback to straight lines if OSRM fails
+              // Fallback to straight lines
+              for (let i = 0; i < stations.length - 1; i++) {
+                const currentStation = stations[i];
+                const nextStation = stations[i + 1];
+                const isPassed = currentStation.TrangThaiQua === '1';
+                const color = isPassed ? '#22c55e' : '#3b82f6';
+                
+                L.polyline([
+                  [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
+                  [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
+                ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
+              }
+              
               const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-              L.polyline(routeCoords, { color: '#3b82f6', weight: 4, opacity: 0.7 }).addTo(map);
               map.fitBounds(routeCoords);
             }
           } catch (error) {
             console.error('Error fetching route from OSRM:', error);
             // Fallback to straight lines
+            for (let i = 0; i < stations.length - 1; i++) {
+              const currentStation = stations[i];
+              const nextStation = stations[i + 1];
+              const isPassed = currentStation.TrangThaiQua === '1';
+              const color = isPassed ? '#22c55e' : '#3b82f6';
+              
+              L.polyline([
+                [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
+                [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
+              ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
+            }
+            
             const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-            L.polyline(routeCoords, { color: '#3b82f6', weight: 4, opacity: 0.7 }).addTo(map);
             map.fitBounds(routeCoords);
           }
         };
 
         fetchRealRoute();
-
-        // Add bus marker at first station
-        const firstStation = stations[0];
-        const busIcon = L.divIcon({
-          className: 'custom-bus-marker',
-          html: `<div style="background-color: #ef4444; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.4);">🚌</div>`,
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
-        });
-
-        busMarkerRef.current = L.marker(
-          [parseFloat(firstStation.ViDo), parseFloat(firstStation.KinhDo)],
-          { icon: busIcon }
-        ).addTo(map);
       }
     }
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        busMarkerRef.current = null;
+      if (detailMapInstanceRef.current) {
+        detailMapInstanceRef.current.remove();
+        detailMapInstanceRef.current = null;
       }
     };
-  }, [showTrackingModal, selectedSchedule]);
+  }, [showDetailModal, selectedSchedule, activeTab]);
 
-  // Simulate bus movement
-  const handleStartSimulation = () => {
-    if (!selectedSchedule || !selectedSchedule.details) return;
-    
-    setIsSimulating(true);
-    setCurrentStopIndex(0);
-    
-    const stations = selectedSchedule.details;
-    let index = 0;
 
-    const interval = setInterval(async () => {
-      if (index >= stations.length) {
-        clearInterval(interval);
-        setIsSimulating(false);
-        return;
-      }
-
-      const station = stations[index];
-      const lat = parseFloat(station.ViDo);
-      const lng = parseFloat(station.KinhDo);
-
-      // Move bus marker
-      if (busMarkerRef.current) {
-        busMarkerRef.current.setLatLng([lat, lng]);
-        mapInstanceRef.current?.panTo([lat, lng]);
-      }
-
-      // Update station status in backend
-      const detail = stations[index];
-      try {
-        const token = localStorage.getItem('token');
-        await fetch(`${API_URL}/schedules/details/${detail.MaCTLT}/status`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status: '1' })
-        });
-      } catch (error) {
-        console.error('Error updating stop status:', error);
-      }
-
-      // Update local state
-      setSchedules(prevSchedules => 
-        prevSchedules.map(s => 
-          s.MaLT === selectedSchedule.MaLT ? {
-            ...s,
-            details: s.details.map((d, i) => 
-              i <= index ? { ...d, TrangThaiQua: '1' } : d
-            )
-          } : s
-        )
-      );
-
-      // Update selected schedule
-      setSelectedSchedule(prev => ({
-        ...prev,
-        details: prev.details.map((d, i) => 
-          i <= index ? { ...d, TrangThaiQua: '1' } : d
-        )
-      }));
-
-      setCurrentStopIndex(index);
-      index++;
-    }, 2000); // 2 seconds per station
-  };
-
-  const handleResetSimulation = async () => {
-    setIsSimulating(false);
-    setCurrentStopIndex(0);
-    
-    // Reset all stations in backend
-    try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      await Promise.all(
-        selectedSchedule.details.map(detail =>
-          fetch(`${API_URL}/schedules/details/${detail.MaCTLT}/status`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ status: '0' })
-          })
-        )
-      );
-    } catch (error) {
-      console.error('Error resetting stop status:', error);
-    }
-
-    // Reset local state
-    setSchedules(prevSchedules => 
-      prevSchedules.map(s => 
-        s.MaLT === selectedSchedule.MaLT ? {
-          ...s,
-          details: s.details.map(d => ({ ...d, TrangThaiQua: '0' }))
-        } : s
-      )
-    );
-
-    setSelectedSchedule(prev => ({
-      ...prev,
-      details: prev.details.map(d => ({ ...d, TrangThaiQua: '0' }))
-    }));
-
-    // Move bus back to first station
-    if (busMarkerRef.current && selectedSchedule.details.length > 0) {
-      const firstStation = selectedSchedule.details[0];
-      busMarkerRef.current.setLatLng([parseFloat(firstStation.ViDo), parseFloat(firstStation.KinhDo)]);
-    }
-  };
 
   const filteredSchedules = schedules
     .filter(s => s.TrangThaiXoa === '0' && (!searchDate || formatDateForBackend(searchDate) === s.NgayChay))
@@ -811,13 +770,20 @@ export default function Schedule() {
       {/* Modal Detail */}
       {showDetailModal && selectedSchedule && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 w-full max-w-7xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Chi tiết lịch trình {selectedSchedule.MaLT}</h2>
                 <p className="text-gray-600 mt-1">{selectedSchedule.TenTuyenDuong} - {formatDateDisplay(selectedSchedule.NgayChay)}</p>
               </div>
-              <button onClick={() => { setShowDetailModal(false); setActiveTab('stations'); }} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => { 
+                setShowDetailModal(false); 
+                setActiveTab('stations');
+                if (detailMapInstanceRef.current) {
+                  detailMapInstanceRef.current.remove();
+                  detailMapInstanceRef.current = null;
+                }
+              }} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -833,6 +799,11 @@ export default function Schedule() {
                 onClick={() => setActiveTab('stations')}
                 className={`px-4 py-2 font-medium ${activeTab === 'stations' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}>
                 Danh sách trạm ({selectedSchedule.details?.length || 0})
+              </button>
+              <button 
+                onClick={() => setActiveTab('map')}
+                className={`px-4 py-2 font-medium ${activeTab === 'map' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}>
+                Bản đồ {activeTab === 'map' && <span className="text-xs">(🔄 Tự động cập nhật mỗi 5s)</span>}
               </button>
               <button 
                 onClick={() => { setActiveTab('attendance'); fetchAttendance(selectedSchedule.MaLT); }}
@@ -867,6 +838,13 @@ export default function Schedule() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Tab Content - Map */}
+            {activeTab === 'map' && (
+              <div className="rounded-lg overflow-hidden border-2 border-gray-300">
+                <div ref={detailMapRef} style={{ height: '500px', width: '100%' }}></div>
               </div>
             )}
 
@@ -929,14 +907,15 @@ export default function Schedule() {
               </div>
             )}
 
-            <div className="flex justify-between items-center mt-6 pt-4 border-t">
-              <div className="flex gap-3">
-                <button onClick={() => { setShowTrackingModal(true); }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
-                  <MapIcon size={16} /> Theo dõi trên bản đồ
-                </button>
-              </div>
-              <button onClick={() => { setShowDetailModal(false); setActiveTab('stations'); }}
+            <div className="flex justify-end mt-6 pt-4 border-t">
+              <button onClick={() => { 
+                setShowDetailModal(false); 
+                setActiveTab('stations');
+                if (detailMapInstanceRef.current) {
+                  detailMapInstanceRef.current.remove();
+                  detailMapInstanceRef.current = null;
+                }
+              }}
                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Đóng
               </button>
@@ -945,103 +924,7 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* Tracking Modal */}
-      {showTrackingModal && selectedSchedule && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Theo dõi lịch trình {selectedSchedule.MaLT}</h2>
-                <p className="text-gray-600 mt-1">{selectedSchedule.TenTuyenDuong} - {formatDateDisplay(selectedSchedule.NgayChay)}</p>
-              </div>
-              <button onClick={() => { setShowTrackingModal(false); setIsSimulating(false); }}
-                className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Tài xế</p>
-                <p className="font-medium text-gray-900">{selectedSchedule.TenTX}</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Xe buýt</p>
-                <p className="font-medium text-gray-900">{selectedSchedule.BienSo}</p>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Tiến độ</p>
-                <p className="font-medium text-gray-900">
-                  {selectedSchedule.details?.filter(d => d.TrangThaiQua === '1').length || 0}/{selectedSchedule.details?.length || 0} trạm
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mb-4">
-              <button 
-                onClick={handleStartSimulation}
-                disabled={isSimulating}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  isSimulating 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}>
-                <Navigation size={16} /> {isSimulating ? 'Đang mô phỏng...' : 'Bắt đầu mô phỏng'}
-              </button>
-              <button 
-                onClick={handleResetSimulation}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2">
-                <X size={16} /> Đặt lại
-              </button>
-            </div>
-
-            <div className="flex-1 grid grid-cols-3 gap-4 overflow-hidden">
-              {/* Map */}
-              <div className="col-span-2 rounded-lg overflow-hidden border-2 border-gray-300">
-                <div ref={mapRef} style={{ height: '500px', width: '100%' }}></div>
-              </div>
-
-              {/* Station List */}
-              <div className="overflow-y-auto space-y-3">
-                <h3 className="font-bold text-gray-900 sticky top-0 bg-white pb-2">Danh sách trạm</h3>
-                {selectedSchedule.details?.map((detail, index) => (
-                  <div 
-                    key={detail.MaCTLT} 
-                    className={`p-3 border-2 rounded-lg transition-all ${
-                      detail.TrangThaiQua === '1' 
-                        ? 'border-green-500 bg-green-50' 
-                        : index === currentStopIndex && isSimulating
-                        ? 'border-blue-500 bg-blue-50 animate-pulse'
-                        : 'border-gray-200'
-                    }`}>
-                    <div className="flex items-start gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 ${
-                        detail.TrangThaiQua === '1' ? 'bg-green-500' : 'bg-gray-400'
-                      }`}>
-                        {detail.ThuTu}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 text-sm truncate">{detail.TenTram}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{detail.DiaChi}</p>
-                        {detail.TrangThaiQua === '1' && (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-700 mt-1">
-                            <CheckCircle size={12} /> Đã qua
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-4 pt-4 border-t">
-              <button onClick={() => { setShowTrackingModal(false); setIsSimulating(false); }}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal Form */}
       {showModal && (
