@@ -26,7 +26,6 @@ CREATE TABLE hocsinh (
   MaTram varchar(50),
   TenHS varchar(100),
   Lop varchar(50),
-  DiaChi varchar(255),
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaHS)
 );
@@ -67,9 +66,6 @@ CREATE TABLE taixe (
   MaTX varchar(50) NOT NULL,
   MaTK varchar(50),
   TenTX varchar(100),
-  SoCCCD varchar(50),
-  BLX varchar(50),
-  DiaChi varchar(255),
   SDT varchar(20),
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaTX)
@@ -186,14 +182,3 @@ ALTER TABLE diemdanh
   
 
 
-
-  INSERT INTO vaitro (MaVT, TenVT) VALUES
-('AD', 'admin'),
-('TX', 'driver'),
-('PH', 'parent');
-
--- 2. Tạo tài khoản test
-INSERT INTO taikhoan (MaTK, MaVT, TenDangNhap, MatKhau, TrangThaiXoa) VALUES
-('TK001', 'AD', 'admin', 'admin123', '0'),
-('TK002', 'TX', 'driver', 'driver123', '0'),
-('TK003', 'PH', 'parent', 'parent123', '0');
