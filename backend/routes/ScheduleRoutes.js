@@ -8,7 +8,9 @@ import {
   getSchedulesByDate,
   getScheduleDetails,
   addScheduleDetail,
-  updateStopStatus
+  updateStopStatus,
+  deleteScheduleDetails,
+  createAttendanceForSchedule
 } from "../controllers/ScheduleController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
@@ -16,14 +18,23 @@ const router = express.Router();
 
 router.use(verifyToken);
 
+// Routes cụ thể phải đặt trước routes có tham số động
 router.get("/", getAllSchedules);
 router.get("/by-date", getSchedulesByDate);
-router.get("/:id", getScheduleById);
 router.post("/", createSchedule);
-router.put("/:id", updateSchedule);
-router.delete("/:id", deleteSchedule);
+
+// Routes với :id/subpath
 router.get("/:id/details", getScheduleDetails);
 router.post("/:id/details", addScheduleDetail);
+router.delete("/:id/details", deleteScheduleDetails);
+router.post("/:id/attendance", createAttendanceForSchedule);
+
+// Routes với :id
+router.get("/:id", getScheduleById);
+router.put("/:id", updateSchedule);
+router.delete("/:id", deleteSchedule);
+
+// Routes khác
 router.put("/details/:detailId/status", updateStopStatus);
 
 export default router;

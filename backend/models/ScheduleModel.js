@@ -82,6 +82,49 @@ const ScheduleModel = {
   updateStopStatus: (detailId, status, callback) => {
     const sql = "UPDATE chitietlichtrinh SET TrangThaiQua = ? WHERE MaCTLT = ?";
     db.query(sql, [status, detailId], callback);
+  },
+
+  // Xóa tất cả chi tiết của lịch trình
+  deleteAllDetails: (scheduleId, callback) => {
+    const sql = "UPDATE chitietlichtrinh SET TrangThaiXoa = '1' WHERE MaLT = ?";
+    db.query(sql, [scheduleId], callback);
+  },
+
+  // Kiểm tra trùng lịch trình (tài xế hoặc xe đã có lịch trong khoảng thời gian)
+  checkConflict: (scheduleData, excludeScheduleId, callback) => {
+    const sql = `
+      SELECT lt.*, xb.BienSo, tx.TenTX
+      FROM lichtrinh lt
+      INNER JOIN xebuyt xb ON lt.MaXB = xb.MaXB
+      INNER JOIN taixe tx ON lt.MaTX = tx.MaTX
+      WHERE lt.TrangThaiXoa = '0'
+        AND lt.NgayChay = ?
+        AND (lt.MaTX = ? OR lt.MaXB = ?)
+        AND (
+          (? >= lt.GioBatDau AND ? < lt.GioKetThuc) OR
+          (? > lt.GioBatDau AND ? <= lt.GioKetThuc) OR
+          (? <= lt.GioBatDau AND ? >= lt.GioKetThuc)
+        )
+        ${excludeScheduleId ? 'AND lt.MaLT != ?' : ''}
+    `;
+    
+    const params = [
+      scheduleData.NgayChay,
+      scheduleData.MaTX,
+      scheduleData.MaXB,
+      scheduleData.GioBatDau,
+      scheduleData.GioBatDau,
+      scheduleData.GioKetThuc,
+      scheduleData.GioKetThuc,
+      scheduleData.GioBatDau,
+      scheduleData.GioKetThuc
+    ];
+    
+    if (excludeScheduleId) {
+      params.push(excludeScheduleId);
+    }
+    
+    db.query(sql, params, callback);
   }
 };
 

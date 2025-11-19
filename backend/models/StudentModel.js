@@ -54,6 +54,21 @@ const StudentModel = {
       WHERE t.MaTD = ? AND hs.TrangThaiXoa = '0'
     `;
     db.query(sql, [routeId], callback);
+  },
+
+  // Lấy học sinh theo danh sách trạm
+  getByStations: (stationIds, callback) => {
+    if (!stationIds || stationIds.length === 0) {
+      return callback(null, []);
+    }
+    
+    const placeholders = stationIds.map(() => '?').join(',');
+    const sql = `
+      SELECT hs.MaHS, hs.TenHS, hs.MaTram
+      FROM hocsinh hs
+      WHERE hs.MaTram IN (${placeholders}) AND hs.TrangThaiXoa = '0'
+    `;
+    db.query(sql, stationIds, callback);
   }
 };
 
