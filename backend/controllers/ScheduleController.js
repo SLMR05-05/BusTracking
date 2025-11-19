@@ -117,7 +117,6 @@ export const addScheduleDetail = (req, res) => {
     MaCTLT: req.body.MaCTLT,
     MaLT: req.params.id,
     MaTram: req.body.MaTram,
-    ThuTu: req.body.ThuTu,
     TrangThaiQua: '0',
     TrangThaiXoa: '0'
   };
