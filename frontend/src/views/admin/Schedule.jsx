@@ -214,6 +214,12 @@ export default function Schedule() {
   const handleRouteChange = async (routeId) => {
     setFormData({ ...formData, MaTD: routeId });
     
+    if (!routeId) {
+      setAvailableStops([]);
+      setSelectedStops([]);
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/routes/${routeId}/stops`, {
@@ -221,25 +227,16 @@ export default function Schedule() {
       });
       const stops = await response.json();
       setAvailableStops(stops);
-      setSelectedStops([]);
+      // Tự động chọn tất cả trạm của tuyến (đã được sắp xếp theo ThuTu)
+      setSelectedStops(stops);
     } catch (error) {
       console.error('Error fetching route stops:', error);
       setAvailableStops([]);
+      setSelectedStops([]);
     }
   };
 
-  const handleToggleStop = (stop) => {
-    const index = selectedStops.findIndex(s => s.MaTram === stop.MaTram);
-    if (index >= 0) {
-      // Bỏ chọn và cập nhật lại thứ tự
-      const newStops = selectedStops.filter(s => s.MaTram !== stop.MaTram)
-        .map((s, i) => ({ ...s, ThuTu: (i + 1).toString() }));
-      setSelectedStops(newStops);
-    } else {
-      // Thêm vào cuối danh sách
-      setSelectedStops([...selectedStops, { ...stop, ThuTu: (selectedStops.length + 1).toString() }]);
-    }
-  };
+
 
   const handleAddDateRange = () => {
     const from = document.getElementById('fromDate').value;
@@ -269,10 +266,17 @@ export default function Schedule() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (selectedStops.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 trạm!');
+    
+    if (!formData.MaTD) {
+      alert('Vui lòng chọn tuyến đường!');
       return;
     }
+    
+    if (availableStops.length === 0) {
+      alert('Tuyến đường này chưa có trạm! Vui lòng thêm trạm trong trang "Tuyến đường".');
+      return;
+    }
+    
     if (selectedDates.length === 0) {
       alert('Vui lòng chọn ít nhất 1 ngày!');
       return;
@@ -327,8 +331,7 @@ export default function Schedule() {
               const stop = selectedStops[j];
               const detailData = {
                 MaCTLT: `CTLT${timestamp}${random}${j}`,
-                MaTram: stop.MaTram,
-                ThuTu: stop.ThuTu
+                MaTram: stop.MaTram
               };
               
               console.log('Adding detail:', detailData);
@@ -342,26 +345,26 @@ export default function Schedule() {
 
             // Tạo điểm danh cho học sinh thuộc các trạm
             try {
-              console.log('📋 Creating attendance for schedule:', scheduleData.MaLT);
-              console.log('📋 API URL:', `${API_URL}/schedules/${scheduleData.MaLT}/attendance`);
-              console.log('📋 Headers:', headers);
+              console.log(' Creating attendance for schedule:', scheduleData.MaLT);
+              console.log(' API URL:', `${API_URL}/schedules/${scheduleData.MaLT}/attendance`);
+              console.log(' Headers:', headers);
               
               const attendanceResponse = await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
                 method: 'POST',
                 headers
               });
               
-              console.log('📋 Attendance response status:', attendanceResponse.status);
+              console.log(' Attendance response status:', attendanceResponse.status);
               
               if (attendanceResponse.ok) {
                 const attendanceData = await attendanceResponse.json();
-                console.log('✅ Created attendance:', attendanceData);
+                console.log(' Created attendance:', attendanceData);
               } else {
                 const errorText = await attendanceResponse.text();
-                console.error('❌ Could not create attendance:', errorText);
+                console.error('Could not create attendance:', errorText);
               }
             } catch (attendanceError) {
-              console.error('❌ Error creating attendance:', attendanceError);
+              console.error('Error creating attendance:', attendanceError);
               // Không dừng quá trình tạo lịch trình nếu tạo điểm danh lỗi
             }
           } else {
@@ -479,8 +482,8 @@ export default function Schedule() {
 
   // Initialize map for detail modal
   useEffect(() => {
-    if (showDetailModal && selectedSchedule && detailMapRef.current && !detailMapInstanceRef.current && activeTab === 'map') {
-      // Create map
+    // Create map when switching to map tab
+    if (showDetailModal && activeTab === 'map' && detailMapRef.current && !detailMapInstanceRef.current) {
       const map = L.map(detailMapRef.current).setView([10.7626, 106.6818], 13);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -488,124 +491,82 @@ export default function Schedule() {
       }).addTo(map);
 
       detailMapInstanceRef.current = map;
-
-      // Draw route and stations
-      const stations = selectedSchedule.details || [];
-      if (stations.length > 0) {
-        // Add station markers
-        stations.forEach((station) => {
-          const lat = parseFloat(station.ViDo);
-          const lng = parseFloat(station.KinhDo);
-          
-          const isPassed = station.TrangThaiQua === '1';
-          const markerColor = isPassed ? '#22c55e' : '#9ca3af';
-          
-          const stationIcon = L.divIcon({
-            className: 'custom-station-marker',
-            html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-          });
-
-          L.marker([lat, lng], { icon: stationIcon })
-            .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
-            .addTo(map);
-        });
-
-        // Fetch and draw real route using OSRM
-        const fetchRealRoute = async () => {
-          try {
-            const coords = stations.map(s => `${parseFloat(s.KinhDo)},${parseFloat(s.ViDo)}`).join(';');
-            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-            
-            const response = await fetch(osrmUrl);
-            const data = await response.json();
-            
-            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-              const route = data.routes[0];
-              const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-              
-              // Draw the route with segments colored based on completion
-              for (let i = 0; i < stations.length - 1; i++) {
-                const currentStation = stations[i];
-                const isPassed = currentStation.TrangThaiQua === '1';
-                const color = isPassed ? '#22c55e' : '#3b82f6';
-                
-                // Find segment coordinates between current and next station
-                const startIdx = coordinates.findIndex(coord => 
-                  Math.abs(coord[0] - parseFloat(currentStation.ViDo)) < 0.001 &&
-                  Math.abs(coord[1] - parseFloat(currentStation.KinhDo)) < 0.001
-                );
-                
-                if (i < stations.length - 1) {
-                  const nextStation = stations[i + 1];
-                  const endIdx = coordinates.findIndex((coord, idx) => 
-                    idx > startIdx &&
-                    Math.abs(coord[0] - parseFloat(nextStation.ViDo)) < 0.001 &&
-                    Math.abs(coord[1] - parseFloat(nextStation.KinhDo)) < 0.001
-                  );
-                  
-                  if (startIdx !== -1 && endIdx !== -1) {
-                    const segmentCoords = coordinates.slice(startIdx, endIdx + 1);
-                    L.polyline(segmentCoords, { 
-                      color: color, 
-                      weight: 5, 
-                      opacity: 0.8,
-                      lineJoin: 'round'
-                    }).addTo(map);
-                  }
-                }
-              }
-              
-              map.fitBounds(coordinates);
-            } else {
-              // Fallback to straight lines
-              for (let i = 0; i < stations.length - 1; i++) {
-                const currentStation = stations[i];
-                const nextStation = stations[i + 1];
-                const isPassed = currentStation.TrangThaiQua === '1';
-                const color = isPassed ? '#22c55e' : '#3b82f6';
-                
-                L.polyline([
-                  [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
-                  [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
-                ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
-              }
-              
-              const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-              map.fitBounds(routeCoords);
-            }
-          } catch (error) {
-            console.error('Error fetching route from OSRM:', error);
-            // Fallback to straight lines
-            for (let i = 0; i < stations.length - 1; i++) {
-              const currentStation = stations[i];
-              const nextStation = stations[i + 1];
-              const isPassed = currentStation.TrangThaiQua === '1';
-              const color = isPassed ? '#22c55e' : '#3b82f6';
-              
-              L.polyline([
-                [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
-                [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
-              ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
-            }
-            
-            const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-            map.fitBounds(routeCoords);
-          }
-        };
-
-        fetchRealRoute();
-      }
     }
 
+    // Cleanup when modal closes or switching away from map tab
     return () => {
-      if (detailMapInstanceRef.current) {
+      if (detailMapInstanceRef.current && (!showDetailModal || activeTab !== 'map')) {
         detailMapInstanceRef.current.remove();
         detailMapInstanceRef.current = null;
       }
     };
-  }, [showDetailModal, selectedSchedule, activeTab]);
+  }, [showDetailModal, activeTab]);
+
+  // Update map markers and routes when data changes
+  useEffect(() => {
+    const map = detailMapInstanceRef.current;
+    if (!map || !selectedSchedule || activeTab !== 'map') return;
+
+    // Clear existing markers and polylines
+    map.eachLayer((layer) => {
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const stations = selectedSchedule.details || [];
+    if (stations.length === 0) return;
+
+    // Add station markers
+    stations.forEach((station) => {
+      const lat = parseFloat(station.ViDo);
+      const lng = parseFloat(station.KinhDo);
+      
+      const isPassed = station.TrangThaiQua === '1';
+      const markerColor = isPassed ? '#22c55e' : '#9ca3af';
+      
+      const stationIcon = L.divIcon({
+        className: 'custom-station-marker',
+        html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      L.marker([lat, lng], { icon: stationIcon })
+        .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
+        .addTo(map);
+    });
+
+    // Draw route if there are at least 2 stations
+    if (stations.length >= 2) {
+      // Draw straight lines between stations
+      for (let i = 0; i < stations.length - 1; i++) {
+        const currentStation = stations[i];
+        const nextStation = stations[i + 1];
+        const isPassed = currentStation.TrangThaiQua === '1';
+        const color = isPassed ? '#22c55e' : '#3b82f6';
+        
+        L.polyline([
+          [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
+          [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
+        ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
+      }
+      
+      // Fit bounds only on first load
+      const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
+      if (routeCoords.length > 0 && !map._boundsSet) {
+        map.fitBounds(routeCoords);
+        map._boundsSet = true;
+      }
+    } else if (stations.length === 1) {
+      // If only 1 station, just center the map on it
+      const station = stations[0];
+      if (!map._boundsSet) {
+        map.setView([parseFloat(station.ViDo), parseFloat(station.KinhDo)], 15);
+        map._boundsSet = true;
+      }
+    }
+  }, [selectedSchedule, activeTab]);
 
 
 
@@ -803,7 +764,7 @@ export default function Schedule() {
               <button 
                 onClick={() => setActiveTab('map')}
                 className={`px-4 py-2 font-medium ${activeTab === 'map' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}>
-                Bản đồ {activeTab === 'map' && <span className="text-xs">(🔄 Tự động cập nhật mỗi 5s)</span>}
+                Bản đồ {activeTab === 'map' && <span className="text-xs">( Tự động cập nhật mỗi 5s)</span>}
               </button>
               <button 
                 onClick={() => { setActiveTab('attendance'); fetchAttendance(selectedSchedule.MaLT); }}
@@ -1034,44 +995,43 @@ export default function Schedule() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Chọn trạm dừng <span className="text-red-500">*</span></h3>
-                <p className="text-sm text-gray-600 mb-4">Click vào trạm để chọn theo thứ tự. Click lại để bỏ chọn.</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách trạm của tuyến</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {availableStops.length > 0 
+                    ? `Tuyến này có ${availableStops.length} trạm (đã được sắp xếp theo thứ tự). Tất cả trạm sẽ được thêm vào lịch trình.`
+                    : 'Chọn tuyến đường để xem danh sách trạm'}
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   {availableStops.length > 0 ? (
-                    availableStops.map(stop => {
-                      const selected = selectedStops.find(s => s.MaTram === stop.MaTram);
-                      return (
-                        <div key={stop.MaTram} onClick={() => handleToggleStop(stop)}
-                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                            selected ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-300'
-                          }`}>
-                          <div className="flex items-center gap-3">
-                            {selected && (
-                              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                                {selected.ThuTu}
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <h5 className="font-medium text-gray-900">{stop.TenTram}</h5>
-                              <p className="text-xs text-gray-600 mt-1">{stop.DiaChi}</p>
-                            </div>
+                    availableStops.map(stop => (
+                      <div key={stop.MaTram} className="p-4 border-2 border-blue-500 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0 bg-blue-600 text-white">
+                            {stop.ThuTu}
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-900">{stop.TenTram}</h5>
+                            <p className="text-xs text-gray-600 mt-1">{stop.DiaChi}</p>
                           </div>
                         </div>
-                      );
-                    })
+                      </div>
+                    ))
                   ) : (
                     <p className="col-span-2 text-center text-gray-500 py-8">
-                      {formData.MaTD ? 'Tuyến này chưa có trạm' : 'Vui lòng chọn tuyến đường'}
+                      {formData.MaTD ? 'Tuyến này chưa có trạm. Vui lòng thêm trạm trong trang "Tuyến đường".' : 'Vui lòng chọn tuyến đường'}
                     </p>
                   )}
                 </div>
-                {selectedStops.length > 0 && (
-                  <p className="text-sm text-green-600 mt-4">✓ Đã chọn {selectedStops.length} trạm</p>
-                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => { setShowModal(false); }}
+                <button type="button" onClick={() => { 
+                  setShowModal(false);
+                  setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
+                  setSelectedStops([]);
+                  setAvailableStops([]);
+                  setSelectedDates([]);
+                }}
                   className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   Tạo lịch trình

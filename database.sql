@@ -14,7 +14,6 @@ CREATE TABLE chitietlichtrinh (
   MaCTLT varchar(50) NOT NULL,
   MaLT varchar(50),
   MaTram varchar(50),
-  ThuTu varchar(50),
   TrangThaiQua VARCHAR(1) DEFAULT '0',
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaCTLT)
@@ -87,6 +86,7 @@ CREATE TABLE tram (
   DiaChi varchar(255),
   KinhDo varchar(50),
   ViDo varchar(50),
+  ThuTu INT DEFAULT 0,
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaTram)
 );

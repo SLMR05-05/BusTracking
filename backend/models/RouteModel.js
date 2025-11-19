@@ -36,7 +36,7 @@ const RouteModel = {
     const sql = `
       SELECT * FROM tram 
       WHERE MaTD = ? AND TrangThaiXoa = '0'
-      ORDER BY MaTram
+      ORDER BY ThuTu, MaTram
     `;
     db.query(sql, [routeId], callback);
   },

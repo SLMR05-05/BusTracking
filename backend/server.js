@@ -39,15 +39,15 @@ app.use("/api/notifications", notificationRoutes);
 
 // Socket.IO connections
 io.on("connection", (socket) => {
-  console.log("🔗 Client connected:", socket.id);
+  console.log(" Client connected:", socket.id);
   
   socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
+    console.log(" Client disconnected:", socket.id);
   });
 });
 
 // Server listen
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });

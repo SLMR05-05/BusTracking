@@ -67,6 +67,7 @@ export const addRouteStop = (req, res) => {
     DiaChi: req.body.DiaChi,
     KinhDo: req.body.KinhDo,
     ViDo: req.body.ViDo,
+    ThuTu: req.body.ThuTu || 0,
     TrangThaiXoa: '0'
   };
 
@@ -81,7 +82,8 @@ export const updateRouteStop = (req, res) => {
     TenTram: req.body.TenTram,
     DiaChi: req.body.DiaChi,
     KinhDo: req.body.KinhDo,
-    ViDo: req.body.ViDo
+    ViDo: req.body.ViDo,
+    ThuTu: req.body.ThuTu
   };
 
   RouteModel.updateStop(req.params.stopId, stopData, (err, result) => {
