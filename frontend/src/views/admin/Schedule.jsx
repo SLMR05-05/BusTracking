@@ -5,48 +5,13 @@ import 'leaflet/dist/leaflet.css';
 
 const API_URL = 'http://localhost:5000/api';
 
-// Helper function to parse dd-mm-yyyy format
-const parseDate = (dateStr) => {
-  if (!dateStr) return null;
-  
-  // If already in yyyy-mm-dd format
-  if (dateStr.includes('-') && dateStr.split('-')[0].length === 4) {
-    return dateStr;
-  }
-  
-  // Parse dd-mm-yyyy format
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const [day, month, year] = parts;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-  
-  return dateStr;
-};
-
 // Helper function to format date for display (dd/mm/yyyy)
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return '';
   
   try {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      // Check if it's yyyy-mm-dd format (year is 4 digits)
-      if (parts[0].length === 4) {
-        const [year, month, day] = parts;
-        const date = new Date(year, parseInt(month) - 1, parseInt(day));
-        return date.toLocaleDateString('vi-VN');
-      }
-      // Otherwise it's dd-mm-yyyy format
-      else {
-        const [day, month, year] = parts;
-        const date = new Date(year, parseInt(month) - 1, parseInt(day));
-        return date.toLocaleDateString('vi-VN');
-      }
-    }
-    
-    // Fallback to standard parsing
-    const date = new Date(dateStr);
+    // dateStr is in YYYY-MM-DD format from database
+    const date = new Date(dateStr + 'T00:00:00');
     if (!isNaN(date.getTime())) {
       return date.toLocaleDateString('vi-VN');
     }
@@ -56,17 +21,24 @@ const formatDateDisplay = (dateStr) => {
   }
 };
 
-// Helper function to convert yyyy-mm-dd to dd-mm-yyyy for backend
-const formatDateForBackend = (dateStr) => {
-  if (!dateStr) return '';
+// Helper function to format time for display (HH:MM)
+const formatTimeDisplay = (timeStr) => {
+  if (!timeStr) return '';
   
-  const parts = dateStr.split('-');
-  if (parts.length === 3 && parts[0].length === 4) {
-    const [year, month, day] = parts;
-    return `${day}-${month}-${year}`;
-  }
+  // timeStr is in HH:MM:SS format from database
+  // Return only HH:MM
+  return timeStr.substring(0, 5);
+};
+
+// Helper function to convert time input to HH:MM:SS format
+const formatTimeForBackend = (timeStr) => {
+  if (!timeStr) return '';
   
-  return dateStr;
+  // If already has seconds
+  if (timeStr.length === 8) return timeStr;
+  
+  // Add :00 seconds
+  return `${timeStr}:00`;
 };
 
 export default function Schedule() {
@@ -308,11 +280,11 @@ export default function Schedule() {
           const scheduleData = {
             MaLT: `LT${timestamp}${random}`,
             MaTD: formData.MaTD,
-            MaTX: formData.MaTX, // Keep as string, don't convert to int
+            MaTX: formData.MaTX,
             MaXB: formData.MaXB,
-            NgayChay: formatDateForBackend(date),
-            GioBatDau: formData.GioBatDau,
-            GioKetThuc: formData.GioKetThuc,
+            NgayChay: date, // Already in YYYY-MM-DD format
+            GioBatDau: formatTimeForBackend(formData.GioBatDau), // Convert to HH:MM:SS
+            GioKetThuc: formatTimeForBackend(formData.GioKetThuc), // Convert to HH:MM:SS
             TrangThai: 'pending'
           };
 
@@ -407,7 +379,7 @@ export default function Schedule() {
   };
 
   const handleSelectAll = () => {
-    const filtered = schedules.filter(s => s.TrangThaiXoa === '0' && (!searchDate || formatDateForBackend(searchDate) === s.NgayChay));
+    const filtered = schedules.filter(s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay));
     setSelectedScheduleIds(selectedScheduleIds.length === filtered.length ? [] : filtered.map(s => s.MaLT));
   };
 
@@ -571,7 +543,7 @@ export default function Schedule() {
 
 
   const filteredSchedules = schedules
-    .filter(s => s.TrangThaiXoa === '0' && (!searchDate || formatDateForBackend(searchDate) === s.NgayChay))
+    .filter(s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay))
     .sort((a, b) => {
       // Tính trạng thái
       const getStatus = (schedule) => {
@@ -593,9 +565,8 @@ export default function Schedule() {
       }
 
       // Cùng trạng thái thì sắp xếp theo ngày gần nhất
-      const dateA = parseDate(a.NgayChay);
-      const dateB = parseDate(b.NgayChay);
-      return new Date(dateA) - new Date(dateB);
+      // NgayChay is already in YYYY-MM-DD format
+      return new Date(a.NgayChay) - new Date(b.NgayChay);
     });
 
 
@@ -697,7 +668,7 @@ export default function Schedule() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 text-sm text-gray-900">
                       <Clock size={14} className="text-gray-400" />
-                      {schedule.GioBatDau} - {schedule.GioKetThuc}
+                      {formatTimeDisplay(schedule.GioBatDau)} - {formatTimeDisplay(schedule.GioKetThuc)}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -750,8 +721,8 @@ export default function Schedule() {
             <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div><p className="text-sm text-gray-600">Tài xế</p><p className="font-medium text-gray-900">{selectedSchedule.TenTX} - {selectedSchedule.SDT}</p></div>
               <div><p className="text-sm text-gray-600">Xe buýt</p><p className="font-medium text-gray-900">{selectedSchedule.MaXB} ({selectedSchedule.BienSo})</p></div>
-              <div><p className="text-sm text-gray-600">Giờ bắt đầu</p><p className="font-medium text-gray-900">{selectedSchedule.GioBatDau}</p></div>
-              <div><p className="text-sm text-gray-600">Giờ kết thúc</p><p className="font-medium text-gray-900">{selectedSchedule.GioKetThuc}</p></div>
+              <div><p className="text-sm text-gray-600">Giờ bắt đầu</p><p className="font-medium text-gray-900">{formatTimeDisplay(selectedSchedule.GioBatDau)}</p></div>
+              <div><p className="text-sm text-gray-600">Giờ kết thúc</p><p className="font-medium text-gray-900">{formatTimeDisplay(selectedSchedule.GioKetThuc)}</p></div>
             </div>
 
             {/* Tabs */}
