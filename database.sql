@@ -34,9 +34,9 @@ CREATE TABLE lichtrinh (
   MaXB varchar(50),
   MaTD varchar(50),
   MaTX varchar(50),
-  NgayChay varchar(50),
-  GioBatDau varchar(50),
-  GioKetThuc varchar(50),
+  NgayChay DATE,          
+  GioBatDau TIME,         
+  GioKetThuc TIME,       
   TrangThai varchar(50),
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaLT)
