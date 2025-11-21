@@ -8,9 +8,11 @@ const DriverModel = {
       FROM taixe tx
       LEFT JOIN taikhoan tk ON tx.MaTK = tk.MaTK
       WHERE tx.TrangThaiXoa = '0'
+      ORDER BY tx.MaTX ASC
     `;
     db.query(sql, callback);
   },
+
 
   // Lấy tài xế theo ID
   findById: (id, callback) => {
@@ -51,7 +53,18 @@ const DriverModel = {
       WHERE lt.MaTX = ? AND lt.NgayChay = ? AND lt.TrangThaiXoa = '0'
     `;
     db.query(sql, [driverId, date], callback);
-  }
+  },
+  getLatestId: (callback) => {
+  const sql = `
+    SELECT MaTX 
+    FROM taixe
+    ORDER BY MaTX DESC
+    LIMIT 1
+  `;
+  db.query(sql, callback);
+}
 };
+  // Lấy mã tài xế mới nhất
+
 
 export default DriverModel;

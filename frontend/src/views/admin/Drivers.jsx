@@ -1,43 +1,100 @@
-import React, { useState } from 'react';
-import { mockDrivers } from '../../data/mockData';
-import { User, UserCheck, UserX, Plus, Calendar, Phone, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { User, UserCheck, UserX, Plus, Calendar, Phone, CreditCard, Search, X } from 'lucide-react';
+
 
 export default function Drivers() {
-  const [drivers, setDrivers] = useState(mockDrivers);
+  const [drivers, setDrivers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState({
     name: '',
     driverId: '',
     phone: '',
-    sccd: '',         
+    SCCCD: '',         
     licenseNumber: '',
-    experience: '',
     address: '',
+    status: 'active'
   });
 
+  // URL backend API
+  const API_URL = 'http://localhost:5000/api/drivers';
 
+  // Lấy danh sách tài xế từ backend
+  const fetchDrivers = async () => {
+    try {
+      const res = await axios.get(API_URL, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+      }
+    })
+      const formattedDrivers = res.data.map(driver => ({
+        id: driver.MaTX,
+        name: driver.TenTX,
+        phone: driver.SDT,
+        SCCCD: driver.SCCCD,         
+        licenseNumber: driver.BangLai,
+        address: driver.DiaChi,
+        status: driver.TrangThaiXoa === '0' ? 'active' : 'deleted'
+      }));
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingDriver) {
-      setDrivers(drivers.map(d => 
-        d.id === editingDriver.id 
-          ? { ...d, ...formData }
-          : d
-      ));
-    } else {
-      const newDriver = {
-        id: Math.max(...drivers.map(d => d.id)) + 1,
-        ...formData,
-        busId: '',
-        routeId: ''
-      };
-      setDrivers([...drivers, newDriver]);
+      setDrivers(formattedDrivers);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách tài xế:', error);
     }
-    setShowModal(false);
-    setEditingDriver(null);
-    resetFormData();
+  };
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+  const filteredDrivers = drivers.filter(d => {
+  const search = searchText.trim().toLowerCase(); 
+  return (
+    d.name.toLowerCase().includes(search) ||
+    d.phone.includes(search)
+  );
+});
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+
+      if (editingDriver) {
+        // Update tài xế
+        await axios.put(`${API_URL}/${editingDriver.id}`, {
+          TenTX: formData.name,
+          SDT: formData.phone,
+          SCCCD: formData.SCCCD,
+          BangLai: formData.licenseNumber,
+          DiaChi: formData.address
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+      } else {
+        // Tạo tài xế mới – backend tự sinh MaTK, MaTX
+        await axios.post(API_URL, {
+          username: formData.username,
+          password: formData.password || "12345",
+          TenTX: formData.name,
+          SDT: formData.phone,
+          SCCCD: formData.SCCCD,
+          BangLai: formData.licenseNumber,
+          DiaChi: formData.address
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      fetchDrivers();
+      setShowModal(false);
+      setEditingDriver(null);
+      resetFormData();
+
+    } catch (error) {
+      console.error("Lỗi khi lưu tài xế:", error);
+    }
   };
 
 
@@ -47,7 +104,7 @@ export default function Drivers() {
       name: '',
       driverId: '',
       phone: '',
-      sccd: '',         
+      SCCCD: '',         
       licenseNumber: '',
       experience: '',
       address: '',
@@ -55,16 +112,14 @@ export default function Drivers() {
     });
   };
 
-
   const handleEdit = (driver) => {
     setEditingDriver(driver);
     setFormData({
       name: driver.name,
-      driverId: driver.driverId,
+      driverId: driver.id,  // <-- fix
       phone: driver.phone,
+      SCCCD: driver.SCCCD,
       licenseNumber: driver.licenseNumber,
-      SCCD: driver.SCCD,
-      experience: driver.experience,
       address: driver.address,
       status: driver.status
     });
@@ -72,14 +127,22 @@ export default function Drivers() {
   };
 
 
-
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa tài xế này?')) {
-      setDrivers(drivers.filter(d => d.id !== id));
+      try {
+        await axios.delete(`${API_URL}/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+
+        fetchDrivers();
+      } catch (error) {
+        console.error('Lỗi khi xóa tài xế:', error);
+      }
     }
   };
 
   return (
+    
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
@@ -95,7 +158,37 @@ export default function Drivers() {
           Thêm tài xế
         </button>
       </div>
+      {/* Search Driver */}
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
 
+            <input
+              type="text"
+              placeholder="Tìm theo tên hoặc số điện thoại..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg
+                        focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {searchText && (
+              <button
+                onClick={() => setSearchText("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2
+                          text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+
+          <div className="text-sm text-gray-600">
+            Tìm thấy <span className="font-bold text-blue-600">{filteredDrivers.length}</span> tài xế
+          </div>
+        </div>
+      </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -107,14 +200,14 @@ export default function Drivers() {
                   Tài xế
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Số căn cước
+                  SCCCD
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bằng lái
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Kinh nghiệm
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Địa chỉ
                 </th>
@@ -124,7 +217,8 @@ export default function Drivers() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {drivers.map((driver) => (
+              {filteredDrivers.map((driver) => (
+
                 <tr key={driver.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -142,16 +236,16 @@ export default function Drivers() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {driver.sccd}  {/* hiển thị SCCD */}
+                    {driver.SCCCD || '-'}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap ">
+                    {driver.licenseNumber || '-'}
+                  </td>
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {driver.experience || '-'}
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{driver.licenseNumber}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {driver.experience}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{driver.address}</div>
+                    {driver.address || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
@@ -172,7 +266,6 @@ export default function Drivers() {
                 </tr>
               ))}
             </tbody>
-
           </table>
         </div>
       </div>
@@ -184,91 +277,121 @@ export default function Drivers() {
             <h2 className="text-2xl font-bold mb-4">
               {editingDriver ? 'Sửa thông tin tài xế' : 'Thêm tài xế mới'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Họ và tên
-                  </label>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* PHẦN 1: TẠO TÀI KHOẢN */}
+              {!editingDriver && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="text-xl font-semibold mb-3 text-blue-600">
+                    Tài khoản
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Tài khoản</label>
+                      <input
+                        type="text"
+                        value={formData.username || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, username: e.target.value })
+                        }
+                        placeholder="Nhập tên đăng nhập"
+                        className="w-full border p-2 rounded-lg"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Mật khẩu</label>
+                      <input
+                        type="text"
+                        value={formData.password || "12345"}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
+                        className="w-full border p-2 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PHẦN 2: THÔNG TIN TÀI XẾ */}
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <h3 className="text-xl font-semibold mb-3 text-green-600">
+                  Thông tin
+                </h3>
+
+                {/* Dòng 1: Họ và tên */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Họ và tên</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full border p-2 rounded-lg"
                     required
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+
+                  {/* Dòng 2: Số điện thoại */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">Số điện thoại</label>
+                    <input
+                      type="text"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full border p-2 rounded-lg"
+                      required
+                    />
+                  </div>
+                </div>
+                
+
+                {/* Dòng 3: SCCCD + Bằng lái */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Số CCCD</label>
+                    <input
+                      type="text"
+                      value={formData.SCCCD}
+                      onChange={(e) => setFormData({ ...formData, SCCCD: e.target.value })}
+                      className="w-full border p-2 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Bằng lái</label>
+                    <input
+                      type="text"
+                      value={formData.licenseNumber}
+                      onChange={(e) =>
+                        setFormData({ ...formData, licenseNumber: e.target.value })
+                      }
+                      className="w-full border p-2 rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {/* Dòng 4: Địa chỉ */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số căn cước công dân
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Địa chỉ</label>
                   <input
                     type="text"
-                    value={formData.SCCD}                // sửa từ licenseNumber thành SCCD
-                    onChange={(e) => setFormData({...formData, SCCD: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    value={formData.address}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
+                    className="w-full border p-2 rounded-lg"
                   />
                 </div>
               </div>
 
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số bằng lái
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.licenseNumber}
-                    onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kinh nghiệm
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.experience}
-                    onChange={(e) => setFormData({...formData, experience: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="VD: 5 năm"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Địa chỉ
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
+              {/* BUTTONS */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -281,6 +404,7 @@ export default function Drivers() {
                 >
                   Hủy
                 </button>
+
                 <button
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -292,8 +416,6 @@ export default function Drivers() {
           </div>
         </div>
       )}
-
-
     </div>
   );
 }

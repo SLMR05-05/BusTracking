@@ -21,6 +21,16 @@ const UserModel = {
   update: (userId , userData, callback)=>{
     const query = "UPDATE taikhoan SET ? WHERE MaTK = ?";
     db.query(query, [userId,userData ], callback);
+  },
+  
+  softDelete: (userId, callback) => {
+    const sql = "UPDATE taikhoan SET TrangThaiXoa = '1' WHERE MaTK = ?";
+    db.query(sql, [userId], callback);
+  },
+
+  getLatestId: (callback) => {
+    const sql = `SELECT MaTK FROM taikhoan ORDER BY MaTK DESC LIMIT 1`;
+    db.query(sql, callback);
   }
 };
 
