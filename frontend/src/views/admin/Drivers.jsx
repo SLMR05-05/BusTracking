@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { User, UserCheck, UserX, Plus, Calendar, Phone, CreditCard, Search, X } from 'lucide-react';
+import { Plus,  Phone, Search, X } from 'lucide-react';
 
 
-export default function Drivers() {
+export default function DriversManagement() {
   const [drivers, setDrivers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
-    driverId: '',
     phone: '',
     SCCCD: '',         
     licenseNumber: '',
@@ -46,15 +46,16 @@ export default function Drivers() {
   };
 
   useEffect(() => {
-    fetchDrivers();
-  }, []);
-  const filteredDrivers = drivers.filter(d => {
-  const search = searchText.trim().toLowerCase(); 
-  return (
-    d.name.toLowerCase().includes(search) ||
-    d.phone.includes(search)
-  );
-});
+      fetchDrivers();
+    }, []);
+    const filteredDrivers = drivers.filter(d => {
+    const search = searchText.trim().toLowerCase(); 
+    return (
+      d.name.toLowerCase().includes(search) ||
+      d.phone.includes(search)
+    );
+  });
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -102,7 +103,7 @@ export default function Drivers() {
   const resetFormData = () => {
     setFormData({
       name: '',
-      driverId: '',
+      id: '',
       phone: '',
       SCCCD: '',         
       licenseNumber: '',
@@ -116,7 +117,7 @@ export default function Drivers() {
     setEditingDriver(driver);
     setFormData({
       name: driver.name,
-      driverId: driver.id,  // <-- fix
+      id: driver.id,  // <-- fix
       phone: driver.phone,
       SCCCD: driver.SCCCD,
       licenseNumber: driver.licenseNumber,
@@ -184,9 +185,9 @@ export default function Drivers() {
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
+          {/* <div className="text-sm text-gray-600">
             Tìm thấy <span className="font-bold text-blue-600">{filteredDrivers.length}</span> tài xế
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -227,7 +228,7 @@ export default function Drivers() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">{driver.name}</div>
-                        <div className="text-sm text-gray-500">{driver.driverId}</div>
+                        <div className="text-sm text-gray-500">{driver.id}</div>
                         <div className="text-sm text-gray-500 flex items-center gap-1">
                           <Phone size={12} />
                           {driver.phone}
@@ -270,7 +271,7 @@ export default function Drivers() {
         </div>
       </div>
 
-      {/* Add/Edit Driver Modal */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">

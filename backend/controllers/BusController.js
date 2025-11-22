@@ -16,19 +16,40 @@ export const getBusById = (req, res) => {
 };
 
 export const createBus = (req, res) => {
-  const busData = {
-    MaXB: req.body.MaXB,
-    BienSo: req.body.BienSo,
-    SucChua: req.body.SucChua,
-    TrangThai: req.body.TrangThai || 'available',
-    TrangThaiXoa: '0'
-  };
+  const { BienSo, SucChua, TrangThai } = req.body;
 
-  BusModel.create(busData, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ message: "Tạo xe buýt thành công", id: result.insertId });
-  });
+  BusModel.getLatestId((errLatest, resultLatest) => {
+    if (errLatest) return res.status(500).json({ error: errLatest.message });
+
+    let newMaXB = "XB001";
+    if (resultLatest.length > 0) {
+      const lastId = resultLatest[0].MaXB;
+      const num = parseInt(lastId.slice(2)) + 1;
+      newMaXB = "XB" + num.toString().padStart(3, "0");
+    }
+
+    const busData = {
+      MaXB: newMaXB,
+      BienSo: BienSo,
+      SucChua: SucChua,
+      TrangThai: TrangThai,
+      TrangThaiXoa: "0"
+    };
+
+    BusModel.create(busData, (errDriver) => {
+      if (errDriver) return res.status(500).json({ error: errDriver.message });
+
+      res.status(201).json({
+        message: "Tạo xe buýt thành công",
+        MaXB: newMaXB,
+        BienSo,
+        SucChua,
+        TrangThai
+      });
+    });
+  });       
 };
+
 
 export const updateBus = (req, res) => {
   const busData = {
