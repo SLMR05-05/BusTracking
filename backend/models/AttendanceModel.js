@@ -37,6 +37,24 @@ const AttendanceModel = {
       ORDER BY lt.NgayChay DESC, lt.GioBatDau DESC
     `;
     db.query(sql, [studentId], callback);
+  },
+
+  // Tạo nhiều bản ghi điểm danh cùng lúc
+  createBulk: (attendanceList, callback) => {
+    if (!attendanceList || attendanceList.length === 0) {
+      return callback(null, { affectedRows: 0 });
+    }
+    
+    const sql = "INSERT INTO diemdanh (MaDD, MaLT, MaHS, TrangThai, TrangThaiXoa) VALUES ?";
+    const values = attendanceList.map(item => [
+      item.MaDD,
+      item.MaLT,
+      item.MaHS,
+      item.TrangThai || '0',
+      item.TrangThaiXoa || '0'
+    ]);
+    
+    db.query(sql, [values], callback);
   }
 };
 

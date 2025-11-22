@@ -26,7 +26,6 @@ CREATE TABLE hocsinh (
   MaTram varchar(50),
   TenHS varchar(100),
   Lop varchar(50),
-  DiaChi varchar(255),
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaHS)
 );
@@ -67,9 +66,6 @@ CREATE TABLE taixe (
   MaTX varchar(50) NOT NULL,
   MaTK varchar(50),
   TenTX varchar(100),
-  SoCCCD varchar(50),
-  BLX varchar(50),
-  DiaChi varchar(255),
   SDT varchar(20),
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaTX)
@@ -183,3 +179,6 @@ ALTER TABLE lichtrinh
 ALTER TABLE diemdanh
   ADD CONSTRAINT fk_diemdanh_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
   ADD CONSTRAINT fk_diemdanh_hocsinh FOREIGN KEY (MaHS) REFERENCES hocsinh(MaHS);
+  
+
+

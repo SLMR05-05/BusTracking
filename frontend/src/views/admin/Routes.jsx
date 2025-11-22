@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import { mockRoutes, mockBuses, mockStudents, mockParents } from '../../data/mockData';
-import { Users, Eye, MapPin, Plus, User, Phone, Trash2 } from 'lucide-react';
+import { mockRoutes, mockStudents, mockParents } from '../../data/mockData';
+import { Users, MapPin, Plus } from 'lucide-react';
 
 export default function Routes() {
+  // ============================================
+  // STATE MANAGEMENT
+  // ============================================
   const [routes, setRoutes] = useState(mockRoutes);
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [showStationsModal, setShowStationsModal] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
-  const [showStopsModal, setShowStopsModal] = useState(false);
-  const [editingStops, setEditingStops] = useState([]);
 
-  const mockStopsList = [
-  { id: 1, name: "Trạm 1 - Nguyễn Văn Cừ", address: "123 Nguyễn Văn Cừ, Q.5" },
-  { id: 2, name: "Trạm 2 - Lê Lợi", address: "45 Lê Lợi, Q.1" },
-  { id: 3, name: "Trạm 3 - Võ Thị Sáu", address: "89 Võ Thị Sáu, Q.3" },
-  { id: 4, name: "Trạm 4 - Phan Đăng Lưu", address: "67 Phan Đăng Lưu, Q.Phú Nhuận" },
-  { id: 5, name: "Trạm 5 - Hoàng Hoa Thám", address: "200 Hoàng Hoa Thám, Q.Tân Bình" },
-];
+  // Mock data trạm
+  const mockStations = [
+    { id: 1, code: "TR001", name: "Trạm Nguyễn Văn Cừ", address: "Nguyễn Văn Cừ, Quận 5", routeId: "TD001" },
+    { id: 2, code: "TR002", name: "Trạm Lê Văn Việt", address: "Lê Văn Việt, Quận 9", routeId: "TD002" },
+    { id: 3, code: "TR003", name: "Trạm Nguyễn Thị Minh Khai", address: "Nguyễn Thị Minh Khai, Q1", routeId: "TD001" },
+  ];
 
-
-
+  // Form data cho thêm/sửa tuyến đường
   const [formData, setFormData] = useState({
     routeId: '',
     name: '',
@@ -28,15 +28,21 @@ export default function Routes() {
     endPoint: ''
   });
 
+  // ============================================
+  // CRUD FUNCTIONS
+  // ============================================
+  
+  // Thêm hoặc sửa tuyến đường
   const handleSubmit = (e) => {
     e.preventDefault();
+    
     if (editingRoute) {
+      // Cập nhật tuyến đường
       setRoutes(routes.map(r =>
-        r.id === editingRoute.id
-          ? { ...r, ...formData }
-          : r
+        r.id === editingRoute.id ? { ...r, ...formData } : r
       ));
     } else {
+      // Thêm tuyến đường mới
       const newRoute = {
         id: Math.max(...routes.map(r => r.id)) + 1,
         stops: [],
@@ -45,177 +51,255 @@ export default function Routes() {
       };
       setRoutes([...routes, newRoute]);
     }
+    
+    // Reset form và đóng modal
     setShowModal(false);
     setEditingRoute(null);
-    setFormData({
-      routeId: '',
-      name: '',
-      startPoint: '',
-      endPoint: ''
-    });
+    setFormData({ routeId: '', name: '', startPoint: '', endPoint: '' });
   };
 
+  // Mở modal sửa
   const handleEdit = (route) => {
     setEditingRoute(route);
     setFormData(route);
     setShowModal(true);
   };
 
+  // Xóa tuyến đường
   const handleDelete = (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa tuyến đường này?')) {
       setRoutes(routes.filter(r => r.id !== id));
     }
   };
 
+  // ============================================
+  // HELPER FUNCTIONS
+  // ============================================
+  
+  // Lấy danh sách học sinh trên tuyến
   const getStudentsOnRoute = (routeId) => {
     return mockStudents.filter(student => student.routeId === routeId);
   };
 
+  // Lấy danh sách trạm trên tuyến
+  const getStationsOnRoute = (routeId) => {
+    return mockStations.filter(station => station.routeId === routeId);
+  };
+
+  // Lấy thông tin phụ huynh
   const getParentInfo = (parentId) => {
     return mockParents.find(parent => parent.id === parentId);
   };
 
+  // Xem danh sách học sinh
   const handleViewStudents = (route) => {
     setSelectedRoute(route);
     setShowStudentsModal(true);
   };
 
-  const handleViewStops = (route) => {
+  // Xem danh sách trạm
+  const handleViewStations = (route) => {
     setSelectedRoute(route);
-    setEditingStops([...route.stops]);
-    setShowStopsModal(true);
+    setShowStationsModal(true);
   };
 
-  const handleAddStop = () => {
-    const newStop = {
-      id: Math.max(...editingStops.map(s => s.id), 0) + 1,
-      name: '',
-      address: ''
-    };
-    setEditingStops([...editingStops, newStop]);
-  };
-
-  const handleUpdateStop = (stopId, field, value) => {
-    setEditingStops(editingStops.map(stop =>
-      stop.id === stopId ? { ...stop, [field]: value } : stop
-    ));
-  };
-
-  const handleDeleteStop = (stopId) => {
-    setEditingStops(editingStops.filter(stop => stop.id !== stopId));
-  };
-
-  const handleSaveStops = () => {
-    setRoutes(routes.map(route =>
-      route.id === selectedRoute.id
-        ? { ...route, stops: editingStops }
-        : route
-    ));
-    setShowStopsModal(false);
-    setSelectedRoute(null);
-    setEditingStops([]);
-  };
-
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Quản lý tuyến đường</h1>
-          <p className="text-gray-600 mt-1">Danh sách và thông tin các tuyến đường xe buýt</p>
+          <p className="text-gray-600 mt-1">Danh sách các tuyến đường xe buýt</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
           <Plus size={20} />
           Thêm tuyến đường
         </button>
       </div>
 
-      {/* Routes Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {routes.map((route) => (
-          <div key={route.id} className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{route.name}</h3>
-                <p className="text-sm text-gray-600">{route.routeId}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Điểm bắt đầu:</span>
-                <span className="text-sm font-medium text-gray-900">{route.startPoint}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Điểm kết thúc:</span>
-                <span className="text-sm font-medium text-gray-900">{route.endPoint}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Số học sinh:</span>
-                <span className="text-sm font-medium text-gray-900">{getStudentsOnRoute(route.routeId).length} học sinh</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Điểm dừng:</span>
-                <span className="text-sm font-medium text-gray-900">{route.stops?.length || 0} điểm</span>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={() => handleEdit(route)}
-                  className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 px-4 rounded-lg transition-colors"
-                >
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(route.id)}
-                  className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 py-2 px-4 rounded-lg transition-colors"
-                >
-                  Xóa
-                </button>
-              </div>
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={() => handleViewStops(route)}
-                  className="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <MapPin size={16} />
-                  Điểm dừng ({route.stops?.length || 0})
-                </button>
-                <button
-                  onClick={() => handleViewStudents(route)}
-                  className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <Users size={16} />
-                  Học sinh ({getStudentsOnRoute(route.routeId).length})
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Bảng danh sách tuyến đường */}
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã tuyến</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên tuyến đường</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm bắt đầu</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm kết thúc</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số trạm</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số học sinh</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {routes.map((route) => (
+              <tr key={route.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">{route.routeId}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">{route.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{route.startPoint}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{route.endPoint}</td>
+                <td className="px-6 py-4 text-sm text-center text-gray-900">
+                  {getStationsOnRoute(route.routeId).length}
+                </td>
+                <td className="px-6 py-4 text-sm text-center text-gray-900">
+                  {getStudentsOnRoute(route.routeId).length}
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => handleViewStations(route)}
+                      className="text-purple-600 hover:text-purple-900 px-3 py-1 rounded hover:bg-purple-50"
+                      title="Xem trạm"
+                    >
+                      <MapPin size={16} className="inline mr-1" />
+                      Trạm
+                    </button>
+                    <button
+                      onClick={() => handleViewStudents(route)}
+                      className="text-green-600 hover:text-green-900 px-3 py-1 rounded hover:bg-green-50"
+                      title="Xem học sinh"
+                    >
+                      <Users size={16} className="inline mr-1" />
+                      HS
+                    </button>
+                    <button
+                      onClick={() => handleEdit(route)}
+                      className="text-blue-600 hover:text-blue-900 px-3 py-1 rounded hover:bg-blue-50"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() => handleDelete(route.id)}
+                      className="text-red-600 hover:text-red-900 px-3 py-1 rounded hover:bg-red-50"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      {/* Bus Stops Modal */}
-      {showStopsModal && selectedRoute && (
+
+      {/* Modal thêm/sửa tuyến đường */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">
+              {editingRoute ? 'Sửa tuyến đường' : 'Thêm tuyến đường mới'}
+            </h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Mã tuyến */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mã tuyến đường <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.routeId}
+                  onChange={(e) => setFormData({ ...formData, routeId: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="VD: TD001"
+                  required
+                />
+              </div>
+
+              {/* Tên tuyến */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên tuyến đường <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="VD: Tuyến 1 - Quận 1 đến Quận 5"
+                  required
+                />
+              </div>
+
+              {/* Điểm bắt đầu */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Điểm bắt đầu <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.startPoint}
+                  onChange={(e) => setFormData({ ...formData, startPoint: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="VD: Trường ABC"
+                  required
+                />
+              </div>
+
+              {/* Điểm kết thúc */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Điểm kết thúc <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.endPoint}
+                  onChange={(e) => setFormData({ ...formData, endPoint: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="VD: Khu đô thị XYZ"
+                  required
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingRoute(null);
+                    setFormData({ routeId: '', name: '', startPoint: '', endPoint: '' });
+                  }}
+                  className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {editingRoute ? 'Cập nhật' : 'Thêm mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xem trạm */}
+      {showStationsModal && selectedRoute && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-                  Quản lý điểm dừng - {selectedRoute.name}
+                  Danh sách trạm - {selectedRoute.name}
                 </h2>
                 <p className="text-gray-600">
-                  {editingStops.length} điểm dừng trên tuyến này
+                  {getStationsOnRoute(selectedRoute.routeId).length} trạm trên tuyến này
                 </p>
               </div>
               <button
                 onClick={() => {
-                  setShowStopsModal(false);
+                  setShowStationsModal(false);
                   setSelectedRoute(null);
-                  setEditingStops([]);
                 }}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
               >
@@ -223,116 +307,48 @@ export default function Routes() {
               </button>
             </div>
 
-            <div className="space-y-4 mb-6">
-              {editingStops.length === 0 ? (
-                <div className="text-center py-12">
-                  <MapPin className="mx-auto mb-4 text-gray-400" size={64} />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Chưa có điểm dừng nào
-                  </h3>
-                  <p className="text-gray-600">
-                    Thêm điểm dừng đầu tiên cho tuyến đường này.
-                  </p>
-                </div>
-              ) : (
-                editingStops.map((stop, index) => {
-                  const stopData = mockStopsList.find(s => s.id === stop.stopId);
-                  return (
-                    <div key={stop.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-4 mb-3">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1 grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Tên điểm dừng
-                            </label>
-                            <select
-                              value={stop.stopId || ""}
-                              onChange={(e) => {
-                                const id = parseInt(e.target.value);
-                                const selected = mockStopsList.find(s => s.id === id);
-                                handleUpdateStop(stop.id, "stopId", id);
-                                handleUpdateStop(stop.id, "name", selected?.name || "");
-                                handleUpdateStop(stop.id, "address", selected?.address || "");
-                              }}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="">-- Chọn điểm dừng --</option>
-                              {mockStopsList.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Địa chỉ
-                            </label>
-                            <input
-                              type="text"
-                              value={stop.address || ""}
-                              disabled
-                              className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-gray-700"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteStop(stop.id)}
-                          className="text-red-600 hover:text-red-800 p-2"
-                          title="Xóa điểm dừng"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t">
-              <button
-                onClick={handleAddStop}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Thêm điểm dừng
-              </button>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowStopsModal(false);
-                    setSelectedRoute(null);
-                    setEditingStops([]);
-                  }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleSaveStops}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Lưu thay đổi
-                </button>
+            {/* Danh sách trạm */}
+            {getStationsOnRoute(selectedRoute.routeId).length === 0 ? (
+              <div className="text-center py-12">
+                <MapPin className="mx-auto mb-4 text-gray-400" size={64} />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Chưa có trạm nào
+                </h3>
+                <p className="text-gray-600">
+                  Thêm trạm trong phần "Quản lý điểm dừng"
+                </p>
               </div>
-            </div>
+            ) : (
+              <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">STT</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Mã trạm</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Tên trạm</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Địa chỉ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getStationsOnRoute(selectedRoute.routeId).map((station, index) => (
+                    <tr key={station.id} className="border-t hover:bg-gray-50">
+                      <td className="px-4 py-2 text-sm text-gray-900">{index + 1}</td>
+                      <td className="px-4 py-2 text-sm font-medium text-gray-900">{station.code}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900">{station.name}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{station.address}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
 
-
-           
-
-
-
-      {/* Students Modal */}
+      {/* Modal xem học sinh */}
       {showStudentsModal && selectedRoute && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -353,14 +369,15 @@ export default function Routes() {
               </button>
             </div>
 
+            {/* Danh sách học sinh */}
             {getStudentsOnRoute(selectedRoute.routeId).length === 0 ? (
               <div className="text-center py-12">
-                <User className="mx-auto mb-4 text-gray-400" size={64} />
+                <Users className="mx-auto mb-4 text-gray-400" size={64} />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Chưa có học sinh nào trên tuyến này
+                  Chưa có học sinh nào
                 </h3>
                 <p className="text-gray-600">
-                  Bạn có thể thêm học sinh trong phần “Quản lý học sinh”.
+                  Thêm học sinh trong phần "Quản lý học sinh"
                 </p>
               </div>
             ) : (
@@ -372,7 +389,6 @@ export default function Routes() {
                     <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Lớp</th>
                     <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Phụ huynh</th>
                     <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">SĐT</th>
-                    <th className="text-left px-4 py-2 text-sm font-medium text-gray-700">Địa chỉ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,110 +401,12 @@ export default function Routes() {
                         <td className="px-4 py-2 text-sm text-gray-900">{student.grade}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{parent?.name || '—'}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{parent?.phone || '—'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{student.address}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             )}
-          </div>
-        </div>
-      )} 
-      {/* Add/Edit Route Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingRoute ? 'Sửa thông tin tuyến đường' : 'Thêm tuyến đường mới'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mã tuyến đường</label>
-                  <input
-                    type="text"
-                    value={formData.routeId}
-                    onChange={(e) => setFormData({ ...formData, routeId: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên tuyến đường</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Điểm bắt đầu</label>
-                <select
-                  value={formData.startPoint}
-                  onChange={(e) => {
-                    const selectedId = parseInt(e.target.value);
-                    const selectedStop = mockStopsList.find(s => s.id === selectedId);
-                    setFormData({
-                      ...formData,
-                      startPoint: selectedStop?.name || "",
-                    });
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">-- Chọn điểm bắt đầu --</option>
-                  {mockStopsList.map((stop) => (
-                    <option key={stop.id} value={stop.id}>{stop.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Điểm kết thúc</label>
-                <select
-                  value={formData.endPoint}
-                  onChange={(e) => {
-                    const selectedId = parseInt(e.target.value);
-                    const selectedStop = mockStopsList.find(s => s.id === selectedId);
-                    setFormData({
-                      ...formData,
-                      endPoint: selectedStop?.name || "",
-                    });
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">-- Chọn điểm kết thúc --</option>
-                  {mockStopsList.map((stop) => (
-                    <option key={stop.id} value={stop.id}>{stop.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingRoute(null);
-                  }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  {editingRoute ? 'Cập nhật' : 'Thêm mới'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
