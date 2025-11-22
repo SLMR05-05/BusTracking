@@ -40,7 +40,16 @@ const ParentModel = {
     const sql = "UPDATE phuhuynh SET TrangThaiXoa = '1' WHERE MaPH = ?";
     db.query(sql, [id], callback);
   },
-
+  
+  getLatestId: (callback) => {
+  const sql = `
+    SELECT MaPH
+    FROM phuhuynh
+    ORDER BY MaPH DESC
+    LIMIT 1
+  `;
+  db.query(sql, callback);
+},
   // Lấy danh sách con của phụ huynh
   getChildren: (parentId, callback) => {
     const sql = `
