@@ -1,143 +1,65 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 22, 2025 lúc 04:04 PM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.2.12
+-- =====================================================
+-- DỮ LIỆU MẪU CHO HỆ THỐNG QUẢN LÝ XE BUÝT TRƯỜNG HỌC
+-- =====================================================
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+USE quanlyxebuyt;
 
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+-- =====================================================
+-- 1. VAI TRÒ (ROLES)
+-- =====================================================
+INSERT INTO vaitro (MaVT, TenVT) VALUES
+('AD', 'admin'),
+('TX', 'driver'),
+('PH', 'parent');
 
---
--- Cơ sở dữ liệu: `quanlyxebuyt`
---
+-- =====================================================
+-- 2. TÀI KHOẢN (ACCOUNTS)
+-- =====================================================
+INSERT INTO taikhoan (MaTK, MaVT, TenDangNhap, MatKhau, TrangThaiXoa) VALUES
+-- Admin
+('TK001', 'AD', 'admin', 'admin123', '0'),
+-- Tài xế
+('TK002', 'TX', 'driver1', 'driver123', '0'),
+('TK003', 'TX', 'driver2', 'driver123', '0'),
+('TK004', 'TX', 'driver3', 'driver123', '0'),
+-- Phụ huynh
+('TK005', 'PH', 'parent1', 'parent123', '0'),
+('TK006', 'PH', 'parent2', 'parent123', '0'),
+('TK007', 'PH', 'parent3', 'parent123', '0');
 
--- --------------------------------------------------------
+-- =====================================================
+-- 3. TÀI XẾ (DRIVERS)
+-- =====================================================
+INSERT INTO taixe (MaTX, MaTK, TenTX, SDT, TrangThaiXoa) VALUES
+('TX001', 'TK002', 'Nguyễn Văn Tài', '0912345678', '0'),
+('TX002', 'TK003', 'Trần Văn Bình', '0987654321', '0'),
+('TX003', 'TK004', 'Lê Văn Cường', '0901234567', '0');
 
---
--- Cấu trúc bảng cho bảng `canhbaosuco`
---
-
-CREATE TABLE `canhbaosuco` (
-  `MaCB` varchar(50) NOT NULL,
-  `MaLT` varchar(50) DEFAULT NULL,
-  `MaTX` varchar(50) DEFAULT NULL,
-  `NoiDungSuCo` varchar(255) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `chitietlichtrinh`
---
-
-CREATE TABLE `chitietlichtrinh` (
-  `MaCTLT` varchar(50) NOT NULL,
-  `MaLT` varchar(50) DEFAULT NULL,
-  `MaTram` varchar(50) DEFAULT NULL,
-  `ThuTu` varchar(50) DEFAULT NULL,
-  `TrangThaiQua` varchar(1) DEFAULT '0',
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `diemdanh`
---
-
-CREATE TABLE `diemdanh` (
-  `MaDD` varchar(50) NOT NULL,
-  `MaLT` varchar(50) DEFAULT NULL,
-  `MaHS` varchar(50) DEFAULT NULL,
-  `ThoiGian` datetime DEFAULT NULL,
-  `TrangThai` varchar(1) NOT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `hocsinh`
---
-
-CREATE TABLE `hocsinh` (
-  `MaHS` varchar(50) NOT NULL,
-  `MaPH` varchar(50) DEFAULT NULL,
-  `MaTram` varchar(50) DEFAULT NULL,
-  `TenHS` varchar(100) DEFAULT NULL,
-  `Lop` varchar(50) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `hocsinh`
---
-
-INSERT INTO `hocsinh` (`MaHS`, `MaPH`, `MaTram`, `TenHS`, `Lop`, `TrangThaiXoa`) VALUES
-('HS001', 'PH001', 'T001', 'Trần Văn An', '10A1', '0'),
-('HS002', 'PH001', 'T002', 'Trần Thị Bình', '9A2', '0'),
-('HS003', 'PH002', 'T003', 'Nguyễn Văn Cường', '11B1', '0'),
-('HS004', 'PH002', 'T005', 'Nguyễn Thị Dung', '8A1', '0'),
-('HS005', 'PH003', 'T008', 'Lê Văn Em', '5A1', '0');
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `lichtrinh`
---
-
-CREATE TABLE `lichtrinh` (
-  `MaLT` varchar(50) NOT NULL,
-  `MaXB` varchar(50) DEFAULT NULL,
-  `MaTD` varchar(50) DEFAULT NULL,
-  `MaTX` varchar(50) DEFAULT NULL,
-  `NgayChay` varchar(50) DEFAULT NULL,
-  `GioBatDau` varchar(50) DEFAULT NULL,
-  `GioKetThuc` varchar(50) DEFAULT NULL,
-  `TrangThai` varchar(50) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `phuhuynh`
---
-
-CREATE TABLE `phuhuynh` (
-  `MaPH` varchar(50) NOT NULL,
-  `MaTK` varchar(50) DEFAULT NULL,
-  `TenPH` varchar(100) DEFAULT NULL,
-  `SDT` varchar(20) DEFAULT NULL,
-  `DiaChi` varchar(255) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `phuhuynh`
---
-
-INSERT INTO `phuhuynh` (`MaPH`, `MaTK`, `TenPH`, `SDT`, `DiaChi`, `TrangThaiXoa`) VALUES
+-- =====================================================
+-- 4. PHỤ HUYNH (PARENTS)
+-- =====================================================
+INSERT INTO phuhuynh (MaPH, MaTK, TenPH, SDT, DiaChi, TrangThaiXoa) VALUES
 ('PH001', 'TK005', 'Trần Thị Mai', '0987654321', '789 Võ Thị Sáu, Q.3, TP.HCM', '0'),
 ('PH002', 'TK006', 'Nguyễn Thị Lan', '0976543210', '321 Điện Biên Phủ, Q.3, TP.HCM', '0'),
 ('PH003', 'TK007', 'Lê Thị Hoa', '0965432109', '654 Cách Mạng Tháng 8, Q.10, TP.HCM', '0');
 
--- --------------------------------------------------------
+-- =====================================================
+-- 5. XE BUÝT (BUSES)
+-- =====================================================
+INSERT INTO xebuyt (MaXB, BienSo, SucChua, TrangThai, TrangThaiXoa) VALUES
+('XB00001', '51A-12345', '45', 'available', '0'),
+('XB00002', '51B-67890', '40', 'available', '0'),
+('XB00003', '51C-11111', '50', 'available', '0'),
+('XB00004', '51D-22222', '45', 'maintenance', '0');
 
---
--- Cấu trúc bảng cho bảng `taikhoan`
---
+-- =====================================================
+-- 6. TUYẾN ĐƯỜNG (ROUTES)
+-- =====================================================
+INSERT INTO tuyenduong (MaTD, BatDau, KetThuc, TenTuyenDuong, TrangThaiXoa) VALUES
+('TD00001', 'Trường THPT Lê Quý Đôn', 'Khu dân cư Phú Mỹ Hưng', 'Tuyến 1 - Quận 1 đến Quận 7', '0'),
+('TD00002', 'Trường THCS Nguyễn Du', 'Khu chung cư Sunrise City', 'Tuyến 2 - Quận 3 đến Quận 7', '0'),
+('TD00003', 'Trường Tiểu học Trần Đại Nghĩa', 'Khu đô thị Vinhomes', 'Tuyến 3 - Quận 1 đến Bình Thạnh', '0');
 
 -- =====================================================
 -- 7. TRẠM DỪNG (STATIONS)
@@ -158,272 +80,36 @@ INSERT INTO tram (MaTram, MaTD, TenTram, DiaChi, KinhDo, ViDo, ThuTu, TrangThaiX
 ('T008', 'TD00003', ' Trường TH Trần Đại Nghĩa', '444 Điện Biên Phủ, Q.3', '106.6900', '10.7800', 1, '0'),
 ('T009', 'TD00003', ' Vinhomes Central Park', '555 Nguyễn Hữu Cảnh, Q.Bình Thạnh', '106.7150', '10.7950', 2, '0');
 
--- --------------------------------------------------------
+-- =====================================================
+-- 8. HỌC SINH (STUDENTS)
+-- =====================================================
+INSERT INTO hocsinh (MaHS, MaPH, MaTram, TenHS, Lop, TrangThaiXoa) VALUES
+-- Phụ huynh 1
+('HS001', 'PH001', 'T001', 'Trần Văn An', '10A1', '0'),
+('HS002', 'PH001', 'T002', 'Trần Thị Bình', '9A2', '0'),
+-- Phụ huynh 2
+('HS003', 'PH002', 'T003', 'Nguyễn Văn Cường', '11B1', '0'),
+('HS004', 'PH002', 'T005', 'Nguyễn Thị Dung', '8A1', '0'),
+-- Phụ huynh 3
+('HS005', 'PH003', 'T008', 'Lê Văn Em', '5A1', '0');
 
---
--- Cấu trúc bảng cho bảng `tuyenduong`
---
+-- =====================================================
+-- KIỂM TRA DỮ LIỆU
+-- =====================================================
 
-CREATE TABLE `tuyenduong` (
-  `MaTD` varchar(50) NOT NULL,
-  `BatDau` varchar(100) DEFAULT NULL,
-  `KetThuc` varchar(100) DEFAULT NULL,
-  `TenTuyenDuong` varchar(100) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+SELECT '========================================' as '';
+SELECT '   THỐNG KÊ DỮ LIỆU MẪU' as '';
+SELECT '========================================' as '';
 
---
--- Đang đổ dữ liệu cho bảng `tuyenduong`
---
+SELECT CONCAT('Vai trò: ', COUNT(*)) as ThongKe FROM vaitro;
+SELECT CONCAT('Tài khoản: ', COUNT(*)) as ThongKe FROM taikhoan WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Tài xế: ', COUNT(*)) as ThongKe FROM taixe WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Phụ huynh: ', COUNT(*)) as ThongKe FROM phuhuynh WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Xe buýt: ', COUNT(*)) as ThongKe FROM xebuyt WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Tuyến đường: ', COUNT(*)) as ThongKe FROM tuyenduong WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Trạm dừng: ', COUNT(*)) as ThongKe FROM tram WHERE TrangThaiXoa = '0';
+SELECT CONCAT('Học sinh: ', COUNT(*)) as ThongKe FROM hocsinh WHERE TrangThaiXoa = '0';
 
-INSERT INTO `tuyenduong` (`MaTD`, `BatDau`, `KetThuc`, `TenTuyenDuong`, `TrangThaiXoa`) VALUES
-('TD00001', 'Trường THPT Lê Quý Đôn', 'Khu dân cư Phú Mỹ Hưng', 'Tuyến 1 - Quận 1 đến Quận 7', '0'),
-('TD00002', 'Trường THCS Nguyễn Du', 'Khu chung cư Sunrise City', 'Tuyến 2 - Quận 3 đến Quận 7', '0'),
-('TD00003', 'Trường Tiểu học Trần Đại Nghĩa', 'Khu đô thị Vinhomes', 'Tuyến 3 - Quận 1 đến Bình Thạnh', '0');
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `vaitro`
---
-
-CREATE TABLE `vaitro` (
-  `MaVT` varchar(50) NOT NULL,
-  `TenVT` varchar(100) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `vaitro`
---
-
-INSERT INTO `vaitro` (`MaVT`, `TenVT`) VALUES
-('AD', 'admin'),
-('PH', 'parent'),
-('TX', 'driver');
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `vitrixe`
---
-
-CREATE TABLE `vitrixe` (
-  `MaVTXe` varchar(50) NOT NULL,
-  `MaXB` varchar(50) DEFAULT NULL,
-  `KinhDo` varchar(50) DEFAULT NULL,
-  `ViDo` varchar(50) DEFAULT NULL,
-  `TrangThaiXe` varchar(50) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `xebuyt`
---
-
-CREATE TABLE `xebuyt` (
-  `MaXB` varchar(50) NOT NULL,
-  `BienSo` varchar(50) DEFAULT NULL,
-  `SucChua` varchar(50) DEFAULT NULL,
-  `TrangThai` varchar(50) DEFAULT NULL,
-  `TrangThaiXoa` varchar(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `xebuyt`
---
-
-INSERT INTO `xebuyt` (`MaXB`, `BienSo`, `SucChua`, `TrangThai`, `TrangThaiXoa`) VALUES
-('XB001', '51A-12345', '45', '0', '0'),
-('XB002', '51B-67890', '40', '0', '0'),
-('XB003', '51C-11111', '50', '0', '0'),
-('XB004', '51D-22222', '45', '0', '0');
-
---
--- Chỉ mục cho các bảng đã đổ
---
-
---
--- Chỉ mục cho bảng `canhbaosuco`
---
-ALTER TABLE `canhbaosuco`
-  ADD PRIMARY KEY (`MaCB`),
-  ADD KEY `fk_canhbaosuco_lichtrinh` (`MaLT`),
-  ADD KEY `fk_canhbaosuco_taixe` (`MaTX`);
-
---
--- Chỉ mục cho bảng `chitietlichtrinh`
---
-ALTER TABLE `chitietlichtrinh`
-  ADD PRIMARY KEY (`MaCTLT`),
-  ADD KEY `fk_chitietlichtrinh_lichtrinh` (`MaLT`),
-  ADD KEY `fk_chitietlichtrinh_tram` (`MaTram`);
-
---
--- Chỉ mục cho bảng `diemdanh`
---
-ALTER TABLE `diemdanh`
-  ADD PRIMARY KEY (`MaDD`),
-  ADD KEY `fk_diemdanh_lichtrinh` (`MaLT`),
-  ADD KEY `fk_diemdanh_hocsinh` (`MaHS`);
-
---
--- Chỉ mục cho bảng `hocsinh`
---
-ALTER TABLE `hocsinh`
-  ADD PRIMARY KEY (`MaHS`),
-  ADD KEY `fk_hocsinh_phuhuynh` (`MaPH`),
-  ADD KEY `fk_hocsinh_tram` (`MaTram`);
-
---
--- Chỉ mục cho bảng `lichtrinh`
---
-ALTER TABLE `lichtrinh`
-  ADD PRIMARY KEY (`MaLT`),
-  ADD KEY `fk_lichtrinh_xebuyt` (`MaXB`),
-  ADD KEY `fk_lichtrinh_tuyenduong` (`MaTD`),
-  ADD KEY `fk_lichtrinh_taixe` (`MaTX`);
-
---
--- Chỉ mục cho bảng `phuhuynh`
---
-ALTER TABLE `phuhuynh`
-  ADD PRIMARY KEY (`MaPH`),
-  ADD KEY `fk_phuhuynh_taikhoan` (`MaTK`);
-
---
--- Chỉ mục cho bảng `taikhoan`
---
-ALTER TABLE `taikhoan`
-  ADD PRIMARY KEY (`MaTK`),
-  ADD KEY `fk_taikhoan_vaitro` (`MaVT`);
-
---
--- Chỉ mục cho bảng `taixe`
---
-ALTER TABLE `taixe`
-  ADD PRIMARY KEY (`MaTX`),
-  ADD KEY `fk_taixe_taikhoan` (`MaTK`);
-
---
--- Chỉ mục cho bảng `thongbao`
---
-ALTER TABLE `thongbao`
-  ADD PRIMARY KEY (`MaTB`),
-  ADD KEY `fk_thongbao_lichtrinh` (`MaLT`),
-  ADD KEY `fk_thongbao_phuhuynh` (`MaPH`);
-
---
--- Chỉ mục cho bảng `tram`
---
-ALTER TABLE `tram`
-  ADD PRIMARY KEY (`MaTram`),
-  ADD KEY `fk_tram_tuyenduong` (`MaTD`);
-
---
--- Chỉ mục cho bảng `tuyenduong`
---
-ALTER TABLE `tuyenduong`
-  ADD PRIMARY KEY (`MaTD`);
-
---
--- Chỉ mục cho bảng `vaitro`
---
-ALTER TABLE `vaitro`
-  ADD PRIMARY KEY (`MaVT`);
-
---
--- Chỉ mục cho bảng `vitrixe`
---
-ALTER TABLE `vitrixe`
-  ADD PRIMARY KEY (`MaVTXe`),
-  ADD KEY `fk_vitrixe_xebuyt` (`MaXB`);
-
---
--- Chỉ mục cho bảng `xebuyt`
---
-ALTER TABLE `xebuyt`
-  ADD PRIMARY KEY (`MaXB`);
-
---
--- Các ràng buộc cho các bảng đã đổ
---
-
---
--- Các ràng buộc cho bảng `canhbaosuco`
---
-ALTER TABLE `canhbaosuco`
-  ADD CONSTRAINT `fk_canhbaosuco_lichtrinh` FOREIGN KEY (`MaLT`) REFERENCES `lichtrinh` (`MaLT`),
-  ADD CONSTRAINT `fk_canhbaosuco_taixe` FOREIGN KEY (`MaTX`) REFERENCES `taixe` (`MaTX`);
-
---
--- Các ràng buộc cho bảng `chitietlichtrinh`
---
-ALTER TABLE `chitietlichtrinh`
-  ADD CONSTRAINT `fk_chitietlichtrinh_lichtrinh` FOREIGN KEY (`MaLT`) REFERENCES `lichtrinh` (`MaLT`),
-  ADD CONSTRAINT `fk_chitietlichtrinh_tram` FOREIGN KEY (`MaTram`) REFERENCES `tram` (`MaTram`);
-
---
--- Các ràng buộc cho bảng `diemdanh`
---
-ALTER TABLE `diemdanh`
-  ADD CONSTRAINT `fk_diemdanh_hocsinh` FOREIGN KEY (`MaHS`) REFERENCES `hocsinh` (`MaHS`),
-  ADD CONSTRAINT `fk_diemdanh_lichtrinh` FOREIGN KEY (`MaLT`) REFERENCES `lichtrinh` (`MaLT`);
-
---
--- Các ràng buộc cho bảng `hocsinh`
---
-ALTER TABLE `hocsinh`
-  ADD CONSTRAINT `fk_hocsinh_phuhuynh` FOREIGN KEY (`MaPH`) REFERENCES `phuhuynh` (`MaPH`),
-  ADD CONSTRAINT `fk_hocsinh_tram` FOREIGN KEY (`MaTram`) REFERENCES `tram` (`MaTram`);
-
---
--- Các ràng buộc cho bảng `lichtrinh`
---
-ALTER TABLE `lichtrinh`
-  ADD CONSTRAINT `fk_lichtrinh_taixe` FOREIGN KEY (`MaTX`) REFERENCES `taixe` (`MaTX`),
-  ADD CONSTRAINT `fk_lichtrinh_tuyenduong` FOREIGN KEY (`MaTD`) REFERENCES `tuyenduong` (`MaTD`),
-  ADD CONSTRAINT `fk_lichtrinh_xebuyt` FOREIGN KEY (`MaXB`) REFERENCES `xebuyt` (`MaXB`);
-
---
--- Các ràng buộc cho bảng `phuhuynh`
---
-ALTER TABLE `phuhuynh`
-  ADD CONSTRAINT `fk_phuhuynh_taikhoan` FOREIGN KEY (`MaTK`) REFERENCES `taikhoan` (`MaTK`);
-
---
--- Các ràng buộc cho bảng `taikhoan`
---
-ALTER TABLE `taikhoan`
-  ADD CONSTRAINT `fk_taikhoan_vaitro` FOREIGN KEY (`MaVT`) REFERENCES `vaitro` (`MaVT`);
-
---
--- Các ràng buộc cho bảng `taixe`
---
-ALTER TABLE `taixe`
-  ADD CONSTRAINT `fk_taixe_taikhoan` FOREIGN KEY (`MaTK`) REFERENCES `taikhoan` (`MaTK`);
-
---
--- Các ràng buộc cho bảng `thongbao`
---
-ALTER TABLE `thongbao`
-  ADD CONSTRAINT `fk_thongbao_lichtrinh` FOREIGN KEY (`MaLT`) REFERENCES `lichtrinh` (`MaLT`),
-  ADD CONSTRAINT `fk_thongbao_phuhuynh` FOREIGN KEY (`MaPH`) REFERENCES `phuhuynh` (`MaPH`);
-
---
--- Các ràng buộc cho bảng `tram`
---
-ALTER TABLE `tram`
-  ADD CONSTRAINT `fk_tram_tuyenduong` FOREIGN KEY (`MaTD`) REFERENCES `tuyenduong` (`MaTD`);
-
---
--- Các ràng buộc cho bảng `vitrixe`
---
-ALTER TABLE `vitrixe`
-  ADD CONSTRAINT `fk_vitrixe_xebuyt` FOREIGN KEY (`MaXB`) REFERENCES `xebuyt` (`MaXB`);
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+SELECT '========================================' as '';
+SELECT 'Dữ liệu mẫu đã được tạo thành công!' as '';
+SELECT '========================================' as '';
