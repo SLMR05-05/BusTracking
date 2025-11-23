@@ -85,326 +85,255 @@ export default function Schedule() {
     };
   }, []);
 
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+const fetchAllData = async () => {
+  setLoading(true); // Bật loading
 
-      console.log('Fetching data from API...');
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}` };
 
-      const [schedulesRes, driversRes, busesRes, routesRes] = await Promise.all([
-        fetch(`${API_URL}/schedules`, { headers }),
-        fetch(`${API_URL}/drivers`, { headers }),
-        fetch(`${API_URL}/buses`, { headers }),
-        fetch(`${API_URL}/routes`, { headers })
-      ]);
+ 
 
-      console.log('Response status:', {
-        schedules: schedulesRes.status,
-        drivers: driversRes.status,
-        buses: busesRes.status,
-        routes: routesRes.status
-      });
+  // Gọi đồng thời 4 API chính
+  const [schedulesRes, driversRes, busesRes, routesRes] = await Promise.all([
+    fetch(`${API_URL}/schedules`, { headers }),
+    fetch(`${API_URL}/drivers`, { headers }),
+    fetch(`${API_URL}/buses`, { headers }),
+    fetch(`${API_URL}/routes`, { headers }),
+  ]);
 
-      if (!schedulesRes.ok) {
-        console.error('Schedules API error:', await schedulesRes.text());
-      }
-      if (!driversRes.ok) {
-        console.error('Drivers API error:', await driversRes.text());
-      }
-      if (!busesRes.ok) {
-        console.error('Buses API error:', await busesRes.text());
-      }
-      if (!routesRes.ok) {
-        console.error('Routes API error:', await routesRes.text());
-      }
-
-      const schedulesData = schedulesRes.ok ? await schedulesRes.json() : [];
-      const driversData = driversRes.ok ? await driversRes.json() : [];
-      const busesData = busesRes.ok ? await busesRes.json() : [];
-      const routesData = routesRes.ok ? await routesRes.json() : [];
-
-      console.log('Fetched data:', {
-        schedules: schedulesData.length,
-        drivers: driversData.length,
-        buses: busesData.length,
-        routes: routesData.length
-      });
-
-      // Fetch details for each schedule
-      const schedulesWithDetails = await Promise.all(
-        schedulesData.map(async (schedule) => {
-          try {
-            const detailsRes = await fetch(`${API_URL}/schedules/${schedule.MaLT}/details`, { headers });
-            const details = detailsRes.ok ? await detailsRes.json() : [];
-            return { ...schedule, details };
-          } catch (err) {
-            console.error(`Error fetching details for schedule ${schedule.MaLT}:`, err);
-            return { ...schedule, details: [] };
-          }
-        })
-      );
-
-      setSchedules(schedulesWithDetails);
-      setDrivers(driversData);
-      setBuses(busesData);
-      setRoutes(routesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      alert('Lỗi khi tải dữ liệu! Kiểm tra console để biết chi tiết.');
-    } finally {
-      setLoading(false);
-    }
+  // Hàm xử lý response: nếu lỗi in log, trả về mảng rỗng
+  const parseResponse = async (res, name) => {
+    if (res.ok) return res.json();
+    const errorText = await res.text();
+    console.error(`${name} API lỗi:`, errorText);
+    return [];
   };
 
-  // Fetch attendance data
-  const fetchAttendance = async (scheduleId) => {
-    try {
-      setLoadingAttendance(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/attendance/schedule/${scheduleId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAttendanceList(data);
+  // Lấy dữ liệu từ các API
+  const [schedulesData, driversData, busesData, routesData] = await Promise.all([
+    parseResponse(schedulesRes, 'Schedules'),
+    parseResponse(driversRes, 'Drivers'),
+    parseResponse(busesRes, 'Buses'),
+    parseResponse(routesRes, 'Routes'),
+  ]);
+
+  console.log('Đã lấy dữ liệu:', {
+    schedules: schedulesData.length,
+    drivers: driversData.length,
+    buses: busesData.length,
+    routes: routesData.length,
+  });
+
+  // Lấy chi tiết từng schedule đồng thời, nếu lỗi trả về details rỗng
+  const schedulesWithDetails = await Promise.all(
+    schedulesData.map(async (schedule) => {
+      const detailsRes = await fetch(`${API_URL}/schedules/${schedule.MaLT}/details`, { headers });
+      if (detailsRes.ok) {
+        const details = await detailsRes.json();
+        return { ...schedule, details };
       } else {
-        console.error('Error fetching attendance:', await response.text());
-        setAttendanceList([]);
+        console.error(`Lỗi lấy chi tiết cho schedule ${schedule.MaLT}:`, await detailsRes.text());
+        return { ...schedule, details: [] };
       }
-    } catch (error) {
-      console.error('Error fetching attendance:', error);
-      setAttendanceList([]);
-    } finally {
-      setLoadingAttendance(false);
+    })
+  );
+
+  // Cập nhật state với dữ liệu đã lấy
+  setSchedules(schedulesWithDetails);
+  setDrivers(driversData);
+  setBuses(busesData);
+  setRoutes(routesData);
+
+  setLoading(false); // Tắt loading
+};
+// Lấy dữ liệu điểm danh theo scheduleId
+const fetchAttendance = async (scheduleId) => {
+  setLoadingAttendance(true); // Bật loading
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch(`${API_URL}/attendance/schedule/${scheduleId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setAttendanceList(data); // Lưu dữ liệu điểm danh vào state
+    } else {
+      console.error('Lỗi khi lấy điểm danh:', await res.text());
+      setAttendanceList([]); // Nếu lỗi thì xóa dữ liệu
     }
+  } catch (error) {
+    console.error('Lỗi fetch điểm danh:', error);
+    setAttendanceList([]);
+  } finally {
+    setLoadingAttendance(false); // Tắt loading
+  }
+};
+
+// Xử lý khi đổi tuyến đường
+const handleRouteChange = async (routeId) => {
+  setFormData(prev => ({ ...prev, MaTD: routeId })); // Cập nhật tuyến trong form
+
+  if (!routeId) {
+    setAvailableStops([]); // Không có tuyến thì xóa trạm
+    setSelectedStops([]);
+    return;
+  }
+
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch(`${API_URL}/routes/${routeId}/stops`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const stops = await res.json();
+    setAvailableStops(stops);   // Lưu trạm có thể chọn
+    setSelectedStops(stops);    // Mặc định chọn hết trạm
+  } catch (error) {
+    console.error('Lỗi lấy trạm:', error);
+    setAvailableStops([]);
+    setSelectedStops([]);
+  }
+};
+
+
+const handleSubmit = async (e) => {
+  e.preventDefault(); // Ngăn form submit reload trang
+
+  // Kiểm tra điều kiện bắt buộc
+  if (!formData.MaTD) return alert('Vui lòng chọn tuyến đường!');
+  if (selectedDates.length === 0) return alert('Vui lòng chọn ít nhất 1 ngày!');
+  if (formData.GioBatDau >= formData.GioKetThuc) return alert('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
+
+  // Lấy token và tạo header cho các request
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
   };
 
-  // Handlers
-  const handleRouteChange = async (routeId) => {
-    setFormData({ ...formData, MaTD: routeId });
-    
-    if (!routeId) {
-      setAvailableStops([]);
-      setSelectedStops([]);
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/routes/${routeId}/stops`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const stops = await response.json();
-      setAvailableStops(stops);
-      // Tự động chọn tất cả trạm của tuyến (đã được sắp xếp theo ThuTu)
-      setSelectedStops(stops);
-    } catch (error) {
-      console.error('Error fetching route stops:', error);
-      setAvailableStops([]);
-      setSelectedStops([]);
-    }
-  };
+  let successCount = 0; // Đếm số lịch tạo thành công
 
+  // Lặp qua từng ngày đã chọn để tạo lịch trình
+  for (const date of selectedDates) {
+    // Tạo mã lịch trình (MaLT) duy nhất dựa trên timestamp và random string
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.random().toString(36).substr(2, 5);
 
+    // Dữ liệu lịch trình gửi lên API
+    const scheduleData = {
+      MaLT: `LT${timestamp}${random}`,
+      MaTD: formData.MaTD,
+      MaTX: formData.MaTX,
+      MaXB: formData.MaXB,
+      NgayChay: date,
+      GioBatDau: formData.GioBatDau,
+      GioKetThuc: formData.GioKetThuc,
+      TrangThai: 'pending'
+    };
 
-  const handleAddDateRange = () => {
-    const from = document.getElementById('fromDate').value;
-    const to = document.getElementById('toDate').value;
-    if (!from || !to) return alert('Vui lòng chọn cả ngày bắt đầu và kết thúc!');
-    
-    const start = new Date(from);
-    const end = new Date(to);
-    if (start > end) return alert('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!');
-    
-    const dates = [];
-    const current = new Date(start);
-    while (current <= end) {
-      const dateStr = current.toISOString().split('T')[0];
-      if (!selectedDates.includes(dateStr)) dates.push(dateStr);
-      current.setDate(current.getDate() + 1);
-    }
-    
-    setSelectedDates([...selectedDates, ...dates].sort());
-    document.getElementById('fromDate').value = '';
-    document.getElementById('toDate').value = '';
-  };
+    // Gửi yêu cầu tạo lịch trình
+    const res = await fetch(`${API_URL}/schedules`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(scheduleData)
+    });
 
-  const handleRemoveDate = (date) => {
-    setSelectedDates(selectedDates.filter(d => d !== date));
-  };
+    if (!res.ok) continue; // Nếu lỗi, bỏ qua ngày này
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.MaTD) {
-      alert('Vui lòng chọn tuyến đường!');
-      return;
-    }
-    
-    if (availableStops.length === 0) {
-      alert('Tuyến đường này chưa có trạm! Vui lòng thêm trạm trong trang "Tuyến đường".');
-      return;
-    }
-    
-    if (selectedDates.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 ngày!');
-      return;
-    }
-
-    // Validate time
-    if (formData.GioBatDau >= formData.GioKetThuc) {
-      alert('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
-      return;
-    }
-
-    // Kiểm tra conflict sẽ được thực hiện ở backend
-
-    try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    // Nếu tạo lịch thành công, thêm chi tiết trạm dừng cho lịch trình
+    for (let i = 0; i < selectedStops.length; i++) {
+      const stop = selectedStops[i];
+      const detailData = {
+        MaCTLT: `CTLT${timestamp}${random}${i}`,
+        MaTram: stop.MaTram
       };
-
-      // Create new schedules for each selected date
-        let successCount = 0;
-        for (let i = 0; i < selectedDates.length; i++) {
-          const date = selectedDates[i];
-          
-          // Generate unique MaLT with proper format (max 50 chars)
-          const timestamp = Date.now().toString().slice(-8); // Last 8 digits
-          const random = Math.random().toString(36).substr(2, 5); // 5 random chars
-          const scheduleData = {
-            MaLT: `LT${timestamp}${random}`,
-            MaTD: formData.MaTD,
-            MaTX: formData.MaTX,
-            MaXB: formData.MaXB,
-            NgayChay: date, // Already in YYYY-MM-DD format
-            GioBatDau: formatTimeForBackend(formData.GioBatDau), // Convert to HH:MM:SS
-            GioKetThuc: formatTimeForBackend(formData.GioKetThuc), // Convert to HH:MM:SS
-            TrangThai: 'pending'
-          };
-
-          console.log('Creating schedule:', scheduleData);
-
-          const response = await fetch(`${API_URL}/schedules`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(scheduleData)
-          });
-
-          if (response.ok) {
-            successCount++;
-            // Add schedule details
-            for (let j = 0; j < selectedStops.length; j++) {
-              const stop = selectedStops[j];
-              const detailData = {
-                MaCTLT: `CTLT${timestamp}${random}${j}`,
-                MaTram: stop.MaTram
-              };
-              
-              console.log('Adding detail:', detailData);
-              
-              await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/details`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(detailData)
-              });
-            }
-
-            // Tạo điểm danh cho học sinh thuộc các trạm
-            try {
-              console.log(' Creating attendance for schedule:', scheduleData.MaLT);
-              console.log(' API URL:', `${API_URL}/schedules/${scheduleData.MaLT}/attendance`);
-              console.log(' Headers:', headers);
-              
-              const attendanceResponse = await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
-                method: 'POST',
-                headers
-              });
-              
-              console.log(' Attendance response status:', attendanceResponse.status);
-              
-              if (attendanceResponse.ok) {
-                const attendanceData = await attendanceResponse.json();
-                console.log(' Created attendance:', attendanceData);
-              } else {
-                const errorText = await attendanceResponse.text();
-                console.error('Could not create attendance:', errorText);
-              }
-            } catch (attendanceError) {
-              console.error('Error creating attendance:', attendanceError);
-              // Không dừng quá trình tạo lịch trình nếu tạo điểm danh lỗi
-            }
-          } else {
-            const errorData = await response.json();
-            console.error('Error creating schedule:', errorData);
-            
-            // Hiển thị lỗi conflict nếu có
-            if (response.status === 400 && errorData.error) {
-              alert(`Lỗi ngày ${formatDateDisplay(date)}: ${errorData.error}`);
-              break; // Dừng tạo các lịch trình còn lại
-            }
-          }
-          
-          // Small delay to ensure unique timestamps
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        alert(`Tạo thành công ${successCount}/${selectedDates.length} lịch trình!`);
-
-      // Refresh data
-      await fetchAllData();
-
-      setShowModal(false);
-      setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
-      setSelectedStops([]);
-      setAvailableStops([]);
-      setSelectedDates([]);
-    } catch (error) {
-      console.error('Error saving schedule:', error);
-      alert('Lỗi khi lưu lịch trình!');
+      await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/details`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(detailData)
+      });
     }
-  };
+
+    // Tạo điểm danh cho lịch trình (bỏ xử lý lỗi cho đơn giản)
+    await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
+      method: 'POST',
+      headers
+    });
+
+    successCount++; // Tăng số lịch tạo thành công
+
+    // Delay nhỏ để tránh trùng mã lịch trình
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  // Thông báo kết quả cho người dùng
+  alert(`Tạo thành công ${successCount}/${selectedDates.length} lịch trình!`);
+
+  // Reset lại form và dữ liệu chọn
+  setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
+  setSelectedDates([]);
+  setSelectedStops([]);
+  setAvailableStops([]);
+
+  // Đóng modal
+  setShowModal(false);
+
+  // Tải lại dữ liệu mới
+  await fetchAllData();
+};
 
 
+// Chọn hoặc bỏ chọn một lịch trình theo MaLT
+const handleSelectSchedule = (MaLT) => {
+  setSelectedScheduleIds(prev =>
+    prev.includes(MaLT)
+      ? prev.filter(id => id !== MaLT) // Nếu đã chọn thì bỏ chọn
+      : [...prev, MaLT]                // Nếu chưa chọn thì thêm vào
+  );
+};
 
-  const handleSelectSchedule = (MaLT) => {
-    setSelectedScheduleIds(prev => 
-      prev.includes(MaLT) ? prev.filter(id => id !== MaLT) : [...prev, MaLT]
+// Chọn tất cả hoặc bỏ chọn tất cả lịch trình hiển thị (theo trạng thái và ngày tìm kiếm)
+const handleSelectAll = () => {
+  // Lọc danh sách lịch trình chưa bị xóa và (nếu có) theo ngày tìm kiếm
+  const filtered = schedules.filter(
+    s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay)
+  );
+
+  // Nếu tất cả đã được chọn thì bỏ chọn hết, ngược lại chọn hết
+  setSelectedScheduleIds(
+    selectedScheduleIds.length === filtered.length
+      ? []
+      : filtered.map(s => s.MaLT)
+  );
+};
+
+// Xóa hàng loạt các lịch trình đã chọn
+const handleDeleteSelected = async () => {
+  if (selectedScheduleIds.length === 0) return alert('Vui lòng chọn ít nhất 1 lịch trình!');
+  if (!window.confirm(`Xóa ${selectedScheduleIds.length} lịch trình?`)) return;
+
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Gửi đồng thời các request xóa từng lịch trình
+    await Promise.all(
+      selectedScheduleIds.map(id =>
+        fetch(`${API_URL}/schedules/${id}`, { method: 'DELETE', headers })
+      )
     );
-  };
 
-  const handleSelectAll = () => {
-    const filtered = schedules.filter(s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay));
-    setSelectedScheduleIds(selectedScheduleIds.length === filtered.length ? [] : filtered.map(s => s.MaLT));
-  };
+    alert('Xóa lịch trình thành công!');
+    setSelectedScheduleIds([]); // Reset danh sách chọn
+    await fetchAllData();        // Tải lại dữ liệu mới
+  } catch (error) {
+    console.error('Lỗi khi xóa lịch trình:', error);
+    alert('Lỗi khi xóa lịch trình!');
+  }
+};
 
-  const handleDeleteSelected = async () => {
-    if (selectedScheduleIds.length === 0) return alert('Vui lòng chọn ít nhất 1 lịch trình!');
-    if (!window.confirm(`Xóa ${selectedScheduleIds.length} lịch trình?`)) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      await Promise.all(
-        selectedScheduleIds.map(id =>
-          fetch(`${API_URL}/schedules/${id}`, { method: 'DELETE', headers })
-        )
-      );
-
-      alert('Xóa lịch trình thành công!');
-      setSelectedScheduleIds([]);
-      await fetchAllData();
-    } catch (error) {
-      console.error('Error deleting schedules:', error);
-      alert('Lỗi khi xóa lịch trình!');
-    }
-  };
 
   // Auto refresh map data every 5 seconds when map tab is active
   useEffect(() => {
