@@ -16,21 +16,33 @@ export const getStudentById = (req, res) => {
 };
 
 export const createStudent = (req, res) => {
-  const studentData = {
-    MaHS: req.body.MaHS,
-    MaPH: req.body.MaPH,
-    MaTram: req.body.MaTram,
-    TenHS: req.body.TenHS,
-    Lop: req.body.Lop,
-    DiaChi: req.body.DiaChi,
-    TrangThaiXoa: '0'
-  };
+  StudentModel.getLatestId((errLatest, resultLatest) => {
+    if (errLatest) return res.status(500).json({ error: errLatest.message });
 
-  StudentModel.create(studentData, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ message: "Tạo học sinh thành công", id: result.insertId });
+    let newMaHS = "HS001";
+    if (resultLatest.length > 0) {
+      const lastId = resultLatest[0].MaHS;
+      const num = parseInt(lastId.slice(2)) + 1;
+      newMaHS = "HS" + num.toString().padStart(3, "0");
+    }
+
+    const studentData = {
+      MaHS: newMaHS,
+      MaPH: req.body.MaPH,
+      MaTram: req.body.MaTram,
+      TenHS: req.body.TenHS,
+      Lop: req.body.Lop,
+      SDT: req.body.SDT || "",
+      TrangThaiXoa: "0",
+    };
+
+    StudentModel.create(studentData, (errStudent) => {
+      if (errStudent) return res.status(500).json({ error: errStudent.message });
+      res.status(201).json({ message: "Tạo học sinh thành công", MaHS: newMaHS });
+    });
   });
 };
+
 
 export const updateStudent = (req, res) => {
   const studentData = {
@@ -38,7 +50,6 @@ export const updateStudent = (req, res) => {
     MaTram: req.body.MaTram,
     TenHS: req.body.TenHS,
     Lop: req.body.Lop,
-    DiaChi: req.body.DiaChi
   };
 
   StudentModel.update(req.params.id, studentData, (err, result) => {
