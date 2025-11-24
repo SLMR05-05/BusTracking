@@ -1,4 +1,4 @@
-import db from "../config/db.js";
+import db from "../../config/db.js";
 
 const NotificationModel = {
   // Lấy thông báo theo phụ huynh

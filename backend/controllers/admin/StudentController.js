@@ -1,4 +1,4 @@
-import StudentModel from "../models/StudentModel.js";
+import StudentModel from "../../models/admin/StudentModel.js";
 
 export const getAllStudents = (req, res) => {
   StudentModel.getAll((err, results) => {

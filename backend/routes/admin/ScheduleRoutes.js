@@ -11,8 +11,8 @@ import {
   updateStopStatus,
   deleteScheduleDetails,
   createAttendanceForSchedule
-} from "../controllers/ScheduleController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/ScheduleController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

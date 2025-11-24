@@ -1,4 +1,4 @@
-import UserModel from "../models/UserModel.js";
+import UserModel from "../../models/admin/UserModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"; // Thêm JWT để tạo token
 
@@ -14,7 +14,6 @@ export const login = (req, res) => {
       message: "Thiếu tên đăng nhập hoặc mật khẩu" 
     });
   }
-
   // 3. Tìm user từ database theo username
   UserModel.findByUsername(username, (err, results) => {
     // Xử lý lỗi database

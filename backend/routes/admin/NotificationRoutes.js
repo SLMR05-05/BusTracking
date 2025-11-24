@@ -3,8 +3,8 @@ import {
   getNotificationsByParent,
   createNotification,
   deleteNotification
-} from "../controllers/NotificationController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/NotificationController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

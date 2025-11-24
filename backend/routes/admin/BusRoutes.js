@@ -7,8 +7,8 @@ import {
   deleteBus,
   getBusLocation,
   updateBusLocation
-} from "../controllers/BusController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/BusController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

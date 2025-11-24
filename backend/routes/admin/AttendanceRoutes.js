@@ -4,8 +4,8 @@ import {
   createAttendance,
   updateAttendanceStatus,
   getStudentAttendanceHistory
-} from "../controllers/AttendanceController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/AttendanceController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import BusModel from "../models/BusModel.js";
+import BusModel from "../../models/admin/BusModel.js";
 
 export const getAllBuses = (req, res) => {
   BusModel.getAll((err, results) => {

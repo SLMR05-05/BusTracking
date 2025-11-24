@@ -1,6 +1,6 @@
-import ScheduleModel from "../models/ScheduleModel.js";
-import StudentModel from "../models/StudentModel.js";
-import AttendanceModel from "../models/AttendanceModel.js";
+import ScheduleModel from "../../models/admin/ScheduleModel.js";
+import StudentModel from "../../models/admin/StudentModel.js";
+import AttendanceModel from "../../models/admin/AttendanceModel.js";
 
 export const getAllSchedules = (req, res) => {
   ScheduleModel.getAll((err, results) => {

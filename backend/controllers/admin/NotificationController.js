@@ -1,4 +1,4 @@
-import NotificationModel from "../models/NotificationModel.js";
+import NotificationModel from "../../models/admin/NotificationModel.js";
 
 export const getNotificationsByParent = (req, res) => {
   NotificationModel.getByParent(req.params.parentId, (err, results) => {

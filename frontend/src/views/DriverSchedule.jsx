@@ -1,366 +1,332 @@
-import { Fullscreen } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  ChevronLeft, ChevronRight, Calendar, Clock, 
+  MapPin, User, Users, X, Bus, Navigation 
+} from "lucide-react";
 
-const mockSchedule = [
-  {
-    id: "trip-1",
-    route: "Tuyến 1",
-    code: "BS-001",
-    startTime: "06:30",
-    endTime: "07:30",
-    distance: "12.4 km",
-    driver: "Trần Văn Tài",
-    vehicle: "51B-12345",
-    stops: [
-      { name: "Điểm 1 - Trường A", eta: "06:30", students: 6, visited: false },
-      { name: "Điểm 2 - Đường Nguyễn Huệ", eta: "06:50", students: 6, visited: false },
-      { name: "Điểm 3 - Trường B", eta: "07:20", students: 6, visited: false },
-    ],
-    students: 18,
-    status: "completed",
-    notes: "Không có sự cố, di chuyển đúng giờ.",
-  },
-  {
-    id: "trip-2",
-    route: "Tuyến 2",
-    code: "BS-002",
-    startTime: "07:45",
-    endTime: "08:45",
-    distance: "15.8 km",
-    driver: "Trần Văn Tài",
-    vehicle: "51B-67890",
-    stops: [
-      { name: "Điểm A - Nhà 1", eta: "07:45", students: 8, visited: false },
-      { name: "Điểm B - Nhà 2", eta: "08:05", students: 7, visited: false },
-      { name: "Điểm C - Trường D", eta: "08:35", students: 7, visited: false },
-    ],
-    students: 22,
-    status: "on-trip",
-    notes: "Đang di chuyển qua đoạn đường đông xe.",
-  },
-  {
-    id: "trip-3",
-    route: "Tuyến 3",
-    code: "BS-003",
-    startTime: "09:30",
-    endTime: "10:15",
-    distance: "10.2 km",
-    driver: "Trần Văn Tài",
-    vehicle: "51B-98765",
-    stops: [
-      { name: "Điểm 1 - Công viên 23/9", eta: "09:30", students: 5, visited: false },
-      { name: "Điểm 2 - Chợ Lớn", eta: "09:50", students: 6, visited: false },
-      { name: "Điểm 3 - Trường E", eta: "10:10", students: 5, visited: false },
-    ],
-    students: 16,
-    status: "pending",
-    notes: "Chuyến kế tiếp, dự kiến khởi hành sau 30 phút.",
-  },
-];
+// --- HELPERS XỬ LÝ NGÀY THÁNG (Không cần thư viện ngoài) ---
+const getMonday = (d) => {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+  return new Date(date.setDate(diff));
+};
+
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const formatDate = (date) => {
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+};
+
+const formatVNTime = (date) => {
+  return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' }).format(date);
+};
+
+// --- MOCK DATA (Sinh dữ liệu giả lập theo tuần hiện tại) ---
+const generateMockSchedule = (baseDate) => {
+  const monday = getMonday(baseDate);
+  // Tạo dữ liệu cho Thứ 2, Thứ 4, Thứ 6
+  return [
+    {
+      id: "trip-1",
+      date: formatDate(monday), // Thứ 2
+      route: "Tuyến 1: Quận 7 - Quận 1",
+      busCode: "51B-123.45",
+      startTime: "06:30",
+      endTime: "07:30",
+      status: "completed",
+      driver: "Trần Văn Tài",
+      stops: [
+        { name: "Chung cư Sunrise City", time: "06:30", type: "pickup" },
+        { name: "Lotte Mart Q7", time: "06:45", type: "pickup" },
+        { name: "Trường THPT Lê Quý Đôn", time: "07:30", type: "dropoff" },
+      ]
+    },
+    {
+      id: "trip-2",
+      date: formatDate(monday), // Thứ 2 (Chuyến chiều)
+      route: "Tuyến 1: Quận 1 - Quận 7",
+      busCode: "51B-123.45",
+      startTime: "16:30",
+      endTime: "17:30",
+      status: "pending",
+      driver: "Trần Văn Tài",
+      stops: [
+        { name: "Trường THPT Lê Quý Đôn", time: "16:30", type: "pickup" },
+        { name: "Lotte Mart Q7", time: "17:15", type: "dropoff" },
+        { name: "Chung cư Sunrise City", time: "17:30", type: "dropoff" },
+      ]
+    },
+    {
+      id: "trip-3",
+      date: formatDate(addDays(monday, 2)), // Thứ 4
+      route: "Tuyến 3: Bình Thạnh - Q1",
+      busCode: "59Z-999.99",
+      startTime: "06:00",
+      endTime: "07:00",
+      status: "pending",
+      driver: "Trần Văn Tài",
+      stops: [
+        { name: "Vinhomes Central Park", time: "06:00", type: "pickup" },
+        { name: "Sài Gòn Pearl", time: "06:15", type: "pickup" },
+        { name: "Trường Wellspring", time: "07:00", type: "dropoff" },
+      ]
+    },
+     {
+      id: "trip-4",
+      date: formatDate(addDays(monday, 4)), // Thứ 6
+      route: "Tuyến Ngoại Khóa: Thảo Cầm Viên",
+      busCode: "51B-888.88",
+      startTime: "08:00",
+      endTime: "11:00",
+      status: "pending",
+      driver: "Trần Văn Tài",
+      stops: [
+        { name: "Trường Quốc Tế ABC", time: "08:00", type: "pickup" },
+        { name: "Thảo Cầm Viên Sài Gòn", time: "08:45", type: "dropoff" },
+        { name: "Trường Quốc Tế ABC", time: "11:00", type: "dropoff" },
+      ]
+    }
+  ];
+};
 
 export default function DriverSchedule() {
-  const [trips, setTrips] = useState(() => {
-    try {
-      const saved = localStorage.getItem("driver_trips_v1");
-      return saved ? JSON.parse(saved) : mockSchedule;
-    } catch {
-      return mockSchedule;
-    }
-  });
-  const [selected, setSelected] = useState(null);
-  const [now, setNow] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [trips, setTrips] = useState([]);
+  const [selectedTrip, setSelectedTrip] = useState(null);
 
-  // UI controls
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | on-trip | completed
-  const [sortBy, setSortBy] = useState("startAsc"); // startAsc | startDesc
-
+  // Load dữ liệu khi đổi tuần (Ở thực tế sẽ gọi API based on startDate & endDate)
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    // Giả lập fetch API
+    const data = generateMockSchedule(currentDate);
+    setTrips(data);
+  }, [currentDate]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("driver_trips_v1", JSON.stringify(trips));
-    } catch {}
-  }, [trips]);
+  // Tạo mảng 7 ngày trong tuần hiện tại
+  const weekDays = useMemo(() => {
+    const monday = getMonday(currentDate);
+    return Array.from({ length: 7 }).map((_, i) => addDays(monday, i));
+  }, [currentDate]);
 
-  const startTrip = (id) =>
-    setTrips((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: "on-trip" } : t))
-    );
+  // Điều hướng tuần
+  const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
+  const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
+  const goToday = () => setCurrentDate(new Date());
 
-  const completeTrip = (id) =>
-    setTrips((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? { ...t, status: "completed", stops: t.stops.map((s) => ({ ...s, visited: true })) }
-          : t
-      )
-    );
-
-  const toggleDetails = (id) => setSelected((s) => (s === id ? null : id));
-
-  const isUpcoming = (startTime) => {
-    const [h, m] = startTime.split(":").map(Number);
-    const t = new Date(now);
-    t.setHours(h, m, 0, 0);
-    const diff = (t - now) / 60000;
-    return diff > 0 && diff <= 45;
+  // Lấy danh sách trip của một ngày cụ thể
+  const getTripsForDay = (dateObj) => {
+    const dateStr = formatDate(dateObj);
+    return trips.filter(t => t.date === dateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
-  // Mark a stop visited/unvisited
-  const toggleStopVisited = (tripId, stopIndex) => {
-    setTrips((prev) =>
-      prev.map((t) => {
-        if (t.id !== tripId) return t;
-        const stops = t.stops.map((s, i) => (i === stopIndex ? { ...s, visited: !s.visited } : s));
-        return { ...t, stops };
-      })
-    );
-  };
-
-  // Helpers
-  const pad2 = (n) => (String(n).length === 1 ? "0" + n : String(n));
-  const addMinutes = (date, mins) => new Date(date.getTime() + mins * 60000);
-  const formatTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-
-  // Estimate arrival by remaining stops (simple heuristic: 6 min per remaining stop)
-  const getEstimatedArrival = (trip) => {
-    const remaining = trip.stops.filter((s) => !s.visited).length;
-    const ETA = addMinutes(now, remaining * 6 + 5); // base + per-stop
-    return formatTime(ETA);
-  };
-
-  // Export visible trips to CSV
-  const exportCsv = (visibleTrips) => {
-    const rows = [
-      ["id", "route", "code", "startTime", "endTime", "vehicle", "driver", "distance", "students", "status", "notes"],
-      ...visibleTrips.map((t) => [
-        t.id,
-        t.route,
-        t.code,
-        t.startTime,
-        t.endTime,
-        t.vehicle,
-        t.driver,
-        t.distance,
-        t.students,
-        t.status,
-        (t.notes || "").replace(/\n/g, " "),
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "trips_export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Filtering and sorting
-  const filtered = trips
-    .filter((t) => {
-      if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return (
-        t.route.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q) ||
-        t.vehicle.toLowerCase().includes(q) ||
-        (t.driver || "").toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      const [ah, am] = a.startTime.split(":").map(Number);
-      const [bh, bm] = b.startTime.split(":").map(Number);
-      const at = ah * 60 + am;
-      const bt = bh * 60 + bm;
-      return sortBy === "startAsc" ? at - bt : bt - at;
-    });
-
-  // Styles
-  const container = {
-    maxWidth: Fullscreen,
-    margin: "24px auto",
-    padding: 16,
-    fontFamily: "Segoe UI, Roboto, sans-serif",
-  };
-
-  const card = {
-    background: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-    border: "1px solid #e5e7eb",
-  };
-
-  const btn = {
-    padding: "8px 12px",
-    borderRadius: 8,
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 500,
-  };
+  const isToday = (dateObj) => formatDate(dateObj) === formatDate(new Date());
 
   return (
-    <div style={container}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>📅 Lịch trình tài xế</h1>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        <div style={{ color: "#6b7280" }}>
-          Thời gian hiện tại: {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen font-sans">
+      
+      {/* --- HEADER ĐIỀU HƯỚNG --- */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Calendar className="text-blue-600" /> Thời Khóa Biểu
+          </h1>
+          <p className="text-gray-500 text-sm">Quản lý lịch trình chạy xe hàng tuần</p>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <input
-            placeholder="Tìm theo tuyến, mã, xe, tài xế..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", width: 360 }}
-          />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: 8 }}>
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chưa khởi hành</option>
-            <option value="on-trip">Đang chạy</option>
-            <option value="completed">Đã hoàn thành</option>
-          </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: 8 }}>
-            <option value="startAsc">Sắp xếp: giờ bắt đầu ↑</option>
-            <option value="startDesc">Sắp xếp: giờ bắt đầu ↓</option>
-          </select>
-          <button
-            style={{ ...btn, background: "#10b981", color: "#fff" }}
-            onClick={() => exportCsv(filtered)}
-            title="Xuất CSV các chuyến đang hiển thị"
-          >
-            Xuất CSV
+
+        <div className="flex items-center bg-white rounded-lg shadow-sm border p-1">
+          <button onClick={prevWeek} className="p-2 hover:bg-gray-100 rounded-md text-gray-600">
+            <ChevronLeft size={20} />
+          </button>
+          <div className="px-4 font-semibold text-gray-700 w-48 text-center select-none">
+            {`Tuần ${weekDays[0].getDate()}/${weekDays[0].getMonth() + 1} - ${weekDays[6].getDate()}/${weekDays[6].getMonth() + 1}`}
+          </div>
+          <button onClick={nextWeek} className="p-2 hover:bg-gray-100 rounded-md text-gray-600">
+            <ChevronRight size={20} />
           </button>
         </div>
+        
+        <button onClick={goToday} className="text-sm font-medium text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-blue-200">
+          Về hôm nay
+        </button>
       </div>
 
-      {filtered.map((trip) => {
-        const upcoming = isUpcoming(trip.startTime);
-        const remainingStops = trip.stops.filter((s) => !s.visited).length;
-        return (
-          <div key={trip.id} style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 600 }}>
-                  {trip.route} <span style={{ color: "#374151", fontWeight: 500 }}>({trip.code})</span>
+      {/* --- LỊCH TRÌNH GRID (WEEK VIEW) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+        {weekDays.map((day, index) => {
+          const dayTrips = getTripsForDay(day);
+          const isCurrentDay = isToday(day);
+
+          return (
+            <div key={index} className={`flex flex-col rounded-xl overflow-hidden border transition-all 
+              ${isCurrentDay ? 'bg-blue-50/50 border-blue-200 shadow-md ring-1 ring-blue-200' : 'bg-white border-gray-200 shadow-sm'}`}
+            >
+              {/* Header Ngày */}
+              <div className={`p-3 text-center border-b ${isCurrentDay ? 'bg-blue-100 text-blue-700' : 'bg-gray-50 text-gray-600'}`}>
+                <div className="text-xs font-semibold uppercase opacity-70">
+                  {new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(day)}
                 </div>
-                <div style={{ color: "#6b7280", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-                  🕓 {trip.startTime} → {trip.endTime} • 📍 {trip.stops.length} điểm • 👨‍🎓 {trip.students} học sinh • 🚐{" "}
-                  {trip.distance}
-                  {upcoming && <span style={{ marginLeft: 8, color: "#b45309" }}>● Sắp khởi hành</span>}
-                </div>
-                <div style={{ marginTop: 6, fontSize: 13, color: "#374151" }}>
-                  ⏱️ ETA ước tính: <strong>{getEstimatedArrival(trip)}</strong> • Điểm còn lại: <strong>{remainingStops}</strong>
+                <div className={`text-xl font-bold mt-1 w-8 h-8 mx-auto flex items-center justify-center rounded-full ${isCurrentDay ? 'bg-blue-600 text-white' : ''}`}>
+                  {day.getDate()}
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {trip.status === "pending" && (
-                  <button style={{ ...btn, background: "#3b82f6", color: "#fff" }} onClick={() => startTrip(trip.id)}>
-                    Bắt đầu
-                  </button>
-                )}
-                {trip.status === "on-trip" && (
-                  <button style={{ ...btn, background: "#ef4444", color: "#fff" }} onClick={() => completeTrip(trip.id)}>
-                    Hoàn thành
-                  </button>
-                )}
-                {trip.status === "completed" && (
-                  <div style={{ color: "#16a34a", fontWeight: 600 }}>✅ Đã hoàn thành</div>
-                )}
-                <button style={{ ...btn, background: "#f3f4f6", color: "#111827" }} onClick={() => toggleDetails(trip.id)}>
-                  {selected === trip.id ? "Ẩn chi tiết" : "Chi tiết"}
-                </button>
-              </div>
-            </div>
-
-            {selected === trip.id && (
-              <div style={{ marginTop: 14, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>📍 Danh sách điểm dừng</div>
-                <ol style={{ marginLeft: 18, color: "#374151", fontSize: 14 }}>
-                  {trip.stops.map((s, i) => (
-                    <li key={i} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{s.name}</div>
-                        <div style={{ color: "#6b7280", fontSize: 13 }}>
-                          🕒 {s.eta} • 👨‍🎓 {s.students} học sinh
+              {/* Danh sách chuyến trong ngày */}
+              <div className="flex-1 p-2 min-h-[150px] space-y-2">
+                {dayTrips.length > 0 ? (
+                  dayTrips.map(trip => (
+                    <div 
+                      key={trip.id}
+                      onClick={() => setSelectedTrip(trip)}
+                      className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider
+                          ${trip.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            trip.status === 'on-trip' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {trip.status === 'completed' ? 'Đã xong' : trip.status === 'on-trip' ? 'Đang chạy' : 'Sắp tới'}
+                        </span>
+                        <div className="text-gray-400 group-hover:text-blue-500">
+                           <Navigation size={14} />
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={!!s.visited}
-                            onChange={() => toggleStopVisited(trip.id, i)}
-                          />
-                          <span style={{ fontSize: 13 }}>{s.visited ? "Đã qua" : "Chưa"}</span>
-                        </label>
-                        <button
-                          style={{
-                            padding: "6px 10px",
-                            borderRadius: 8,
-                            border: "1px solid #d1d5db",
-                            background: "#fff",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => alert(`Mở chỉ đường đến: ${s.name}`)}
-                        >
-                          Bản đồ
-                        </button>
+                      
+                      <h3 className="font-bold text-gray-800 text-sm line-clamp-2 leading-tight mb-2">
+                        {trip.route}
+                      </h3>
+                      
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Clock size={12} />
+                        <span>{trip.startTime} - {trip.endTime}</span>
                       </div>
-                    </li>
-                  ))}
-                </ol>
-
-                <div style={{ marginTop: 10, fontSize: 14, color: "#6b7280" }}>
-                  🚐 Xe: <strong>{trip.vehicle}</strong> — Tài xế: <strong>{trip.driver}</strong>
-                </div>
-
-                <div style={{ marginTop: 8, fontSize: 14, color: "#374151", fontStyle: "italic" }}>📝 Ghi chú: {trip.notes}</div>
-
-                <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
-                  <button
-                    style={{ ...btn, background: "#f59e0b", color: "#fff" }}
-                    onClick={() => alert("Đã gửi cảnh báo khẩn cấp!")}
-                  >
-                    ⚠️ Báo sự cố
-                  </button>
-                  <button
-                    style={{ ...btn, background: "#fff", border: "1px solid #d1d5db", color: "#111827" }}
-                    onClick={() => {
-                      const note = prompt("Ghi chú mới cho chuyến:");
-                      if (note) {
-                        setTrips((prev) => prev.map((t) => (t.id === trip.id ? { ...t, notes: (t.notes || "") + "\n" + note } : t)));
-                      }
-                    }}
-                  >
-                    ➕ Thêm ghi chú
-                  </button>
-                  <button
-                    style={{ ...btn, background: "#06b6d4", color: "#fff" }}
-                    onClick={() => {
-                      navigator.clipboard?.writeText(`${trip.route} (${trip.code}) - ${trip.startTime} - ${trip.vehicle}`) ;
-                      alert("Thông tin chuyến đã được sao chép");
-                    }}
-                  >
-                    Sao chép thông tin
-                  </button>
-                </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">
+                    Trống lịch
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
 
-      {filtered.length === 0 && <div style={{ color: "#6b7280" }}>Không có chuyến phù hợp.</div>}
+      {/* --- MODAL CHI TIẾT --- */}
+      {selectedTrip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="bg-blue-600 p-5 text-white flex justify-between items-start">
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Bus size={20} /> {selectedTrip.route}
+                </h2>
+                <p className="text-blue-100 text-sm mt-1 flex items-center gap-4">
+                  <span>📅 {selectedTrip.date}</span>
+                  <span>🚐 {selectedTrip.busCode}</span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedTrip(null)}
+                className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              
+              <div className="flex justify-between items-center mb-6 bg-gray-50 p-3 rounded-lg border">
+                 <div className="text-center">
+                    <div className="text-xs text-gray-500 uppercase">Khởi hành</div>
+                    <div className="font-bold text-xl text-blue-600">{selectedTrip.startTime}</div>
+                 </div>
+                 <div className="h-px bg-gray-300 flex-1 mx-4 relative">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400 bg-gray-50 px-2 text-xs">
+                        Thời gian dự kiến
+                    </div>
+                 </div>
+                 <div className="text-center">
+                    <div className="text-xs text-gray-500 uppercase">Kết thúc</div>
+                    <div className="font-bold text-xl text-gray-800">{selectedTrip.endTime}</div>
+                 </div>
+              </div>
+
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <MapPin size={18} className="text-red-500"/> Lộ trình chi tiết
+              </h3>
+
+              {/* Timeline Các trạm */}
+              <div className="space-y-0 relative pl-2">
+                {selectedTrip.stops.map((stop, index) => (
+                  <div key={index} className="flex gap-4 relative pb-8 last:pb-0 group">
+                    {/* Vertical Line */}
+                    {index !== selectedTrip.stops.length - 1 && (
+                      <div className="absolute left-[7px] top-3 bottom-0 w-0.5 bg-gray-200 group-hover:bg-blue-200 transition-colors"></div>
+                    )}
+                    
+                    {/* Dot */}
+                    <div className={`relative z-10 w-4 h-4 rounded-full border-2 mt-1.5 shrink-0
+                      ${stop.type === 'pickup' ? 'border-green-500 bg-green-100' : 'border-red-500 bg-red-100'}`}>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div className="font-semibold text-gray-800 text-sm">{stop.name}</div>
+                        <span className="text-xs font-mono font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {stop.time}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                        {stop.type === 'pickup' ? 'Đón học sinh' : 'Trả học sinh'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Driver Info Block */}
+              <div className="mt-8 pt-4 border-t flex items-center gap-3">
+                 <div className="bg-gray-100 p-2 rounded-full">
+                    <User size={20} className="text-gray-600"/>
+                 </div>
+                 <div>
+                    <div className="text-xs text-gray-500">Tài xế phụ trách</div>
+                    <div className="font-medium text-sm">{selectedTrip.driver}</div>
+                 </div>
+                 <button className="ml-auto text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full font-medium hover:bg-blue-100">
+                    Xem hồ sơ
+                 </button>
+              </div>
+
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+               <button 
+                  onClick={() => setSelectedTrip(null)}
+                  className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-200 rounded-lg transition-colors"
+               >
+                 Đóng
+               </button>
+               <button 
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-md transition-colors flex items-center gap-2"
+                  onClick={() => alert("Chuyển đến màn hình theo dõi GPS")}
+               >
+                 <Navigation size={16}/> Bắt đầu chạy
+               </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

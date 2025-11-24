@@ -1,4 +1,4 @@
-import AttendanceModel from "../models/AttendanceModel.js";
+import AttendanceModel from "../../models/admin/AttendanceModel.js";
 
 export const getAttendanceBySchedule = (req, res) => {
   AttendanceModel.getBySchedule(req.params.scheduleId, (err, results) => {

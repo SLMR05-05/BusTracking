@@ -6,8 +6,8 @@ import {
   updateParent,
   deleteParent,
   getParentChildren
-} from "../controllers/ParentController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/ParentController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

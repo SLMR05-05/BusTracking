@@ -1,4 +1,4 @@
-import RouteModel from "../models/RouteModel.js";
+import RouteModel from "../../models/admin/RouteModel.js";
 
 export const getAllRoutes = (req, res) => {
   RouteModel.getAll((err, results) => {

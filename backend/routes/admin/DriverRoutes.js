@@ -6,8 +6,8 @@ import {
   updateDriver,
   deleteDriver,
   getDriverSchedule
-} from "../controllers/DriverController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/DriverController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

@@ -9,8 +9,8 @@ import {
   addRouteStop,
   updateRouteStop,
   deleteRouteStop
-} from "../controllers/RouteController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+} from "../../controllers/admin/RouteController.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
