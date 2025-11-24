@@ -65,20 +65,20 @@ INSERT INTO tuyenduong (MaTD, BatDau, KetThuc, TenTuyenDuong, TrangThaiXoa) VALU
 -- 7. TRẠM DỪNG (STATIONS)
 -- =====================================================
 -- Tuyến 1
-INSERT INTO tram (MaTram, MaTD, TenTram, DiaChi, KinhDo, ViDo, TrangThaiXoa) VALUES
-('T001', 'TD00001', ' Trường THPT Lê Quý Đôn', '123 Nguyễn Văn Cừ, Q.5', '106.6818', '10.7626', '0'),
-('T002', 'TD00001', ' Chợ Bến Thành', '45 Lê Lợi, Q.1', '106.6980', '10.7720', '0'),
-('T003', 'TD00001', ' Công viên 23/9', '89 Võ Thị Sáu, Q.3', '106.6950', '10.7820', '0'),
-('T004', 'TD00001', ' Phú Mỹ Hưng', '200 Nguyễn Văn Linh, Q.7', '106.7200', '10.7300', '0'),
+INSERT INTO tram (MaTram, MaTD, TenTram, DiaChi, KinhDo, ViDo, ThuTu, TrangThaiXoa) VALUES
+('T001', 'TD00001', ' Trường THPT Lê Quý Đôn', '123 Nguyễn Văn Cừ, Q.5', '106.6818', '10.7626', 1, '0'),
+('T002', 'TD00001', ' Chợ Bến Thành', '45 Lê Lợi, Q.1', '106.6980', '10.7720', 2, '0'),
+('T003', 'TD00001', ' Công viên 23/9', '89 Võ Thị Sáu, Q.3', '106.6950', '10.7820', 3, '0'),
+('T004', 'TD00001', ' Phú Mỹ Hưng', '200 Nguyễn Văn Linh, Q.7', '106.7200', '10.7300', 4, '0'),
 
 -- Tuyến 2
-('T005', 'TD00002', ' Trường THCS Nguyễn Du', '111 Cách Mạng Tháng 8, Q.3', '106.6850', '10.7750', '0'),
-('T006', 'TD00002', ' Chung cư Sunrise', '222 Nguyễn Hữu Cảnh, Q.Bình Thạnh', '106.7100', '10.7900', '0'),
-('T007', 'TD00002', ' Khu dân cư Cityland', '333 Phan Văn Trị, Q.Gò Vấp', '106.6700', '10.8200', '0'),
+('T005', 'TD00002', ' Trường THCS Nguyễn Du', '111 Cách Mạng Tháng 8, Q.3', '106.6850', '10.7750', 1, '0'),
+('T006', 'TD00002', ' Chung cư Sunrise', '222 Nguyễn Hữu Cảnh, Q.Bình Thạnh', '106.7100', '10.7900', 2, '0'),
+('T007', 'TD00002', ' Khu dân cư Cityland', '333 Phan Văn Trị, Q.Gò Vấp', '106.6700', '10.8200', 3, '0'),
 
 -- Tuyến 3
-('T008', 'TD00003', ' Trường TH Trần Đại Nghĩa', '444 Điện Biên Phủ, Q.3', '106.6900', '10.7800', '0'),
-('T009', 'TD00003', ' Vinhomes Central Park', '555 Nguyễn Hữu Cảnh, Q.Bình Thạnh', '106.7150', '10.7950', '0');
+('T008', 'TD00003', ' Trường TH Trần Đại Nghĩa', '444 Điện Biên Phủ, Q.3', '106.6900', '10.7800', 1, '0'),
+('T009', 'TD00003', ' Vinhomes Central Park', '555 Nguyễn Hữu Cảnh, Q.Bình Thạnh', '106.7150', '10.7950', 2, '0');
 
 -- =====================================================
 -- 8. HỌC SINH (STUDENTS)

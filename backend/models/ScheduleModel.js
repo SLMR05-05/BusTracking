@@ -63,11 +63,11 @@ const ScheduleModel = {
   // Lấy chi tiết lịch trình (điểm dừng)
   getScheduleDetails: (scheduleId, callback) => {
     const sql = `
-      SELECT ctlt.*, t.TenTram, t.DiaChi, t.KinhDo, t.ViDo
+      SELECT ctlt.*, t.TenTram, t.DiaChi, t.KinhDo, t.ViDo, t.ThuTu
       FROM chitietlichtrinh ctlt
       INNER JOIN tram t ON ctlt.MaTram = t.MaTram
       WHERE ctlt.MaLT = ? AND ctlt.TrangThaiXoa = '0'
-      ORDER BY ctlt.ThuTu
+      ORDER BY t.ThuTu
     `;
     db.query(sql, [scheduleId], callback);
   },

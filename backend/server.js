@@ -12,7 +12,7 @@ import routeRoutes from "./routes/RouteRoutes.js";
 import scheduleRoutes from "./routes/ScheduleRoutes.js";
 import attendanceRoutes from "./routes/AttendanceRoutes.js";
 import notificationRoutes from "./routes/NotificationRoutes.js";
-
+import stopRoutes from "./routes/StopRoutes.js"; 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -36,18 +36,18 @@ app.use("/api/routes", routeRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/notifications", notificationRoutes);
-
+app.use("/api/stops", stopRoutes);
 // Socket.IO connections
 io.on("connection", (socket) => {
-  console.log("🔗 Client connected:", socket.id);
+  console.log(" Client connected:", socket.id);
   
   socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
+    console.log(" Client disconnected:", socket.id);
   });
 });
 
 // Server listen
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });

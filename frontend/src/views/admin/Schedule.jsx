@@ -5,48 +5,13 @@ import 'leaflet/dist/leaflet.css';
 
 const API_URL = 'http://localhost:5000/api';
 
-// Helper function to parse dd-mm-yyyy format
-const parseDate = (dateStr) => {
-  if (!dateStr) return null;
-  
-  // If already in yyyy-mm-dd format
-  if (dateStr.includes('-') && dateStr.split('-')[0].length === 4) {
-    return dateStr;
-  }
-  
-  // Parse dd-mm-yyyy format
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const [day, month, year] = parts;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-  
-  return dateStr;
-};
-
 // Helper function to format date for display (dd/mm/yyyy)
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return '';
   
   try {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      // Check if it's yyyy-mm-dd format (year is 4 digits)
-      if (parts[0].length === 4) {
-        const [year, month, day] = parts;
-        const date = new Date(year, parseInt(month) - 1, parseInt(day));
-        return date.toLocaleDateString('vi-VN');
-      }
-      // Otherwise it's dd-mm-yyyy format
-      else {
-        const [day, month, year] = parts;
-        const date = new Date(year, parseInt(month) - 1, parseInt(day));
-        return date.toLocaleDateString('vi-VN');
-      }
-    }
-    
-    // Fallback to standard parsing
-    const date = new Date(dateStr);
+    // dateStr is in YYYY-MM-DD format from database
+    const date = new Date(dateStr + 'T00:00:00');
     if (!isNaN(date.getTime())) {
       return date.toLocaleDateString('vi-VN');
     }
@@ -56,17 +21,24 @@ const formatDateDisplay = (dateStr) => {
   }
 };
 
-// Helper function to convert yyyy-mm-dd to dd-mm-yyyy for backend
-const formatDateForBackend = (dateStr) => {
-  if (!dateStr) return '';
+// Helper function to format time for display (HH:MM)
+const formatTimeDisplay = (timeStr) => {
+  if (!timeStr) return '';
   
-  const parts = dateStr.split('-');
-  if (parts.length === 3 && parts[0].length === 4) {
-    const [year, month, day] = parts;
-    return `${day}-${month}-${year}`;
-  }
+  // timeStr is in HH:MM:SS format from database
+  // Return only HH:MM
+  return timeStr.substring(0, 5);
+};
+
+// Helper function to convert time input to HH:MM:SS format
+const formatTimeForBackend = (timeStr) => {
+  if (!timeStr) return '';
   
-  return dateStr;
+  // If already has seconds
+  if (timeStr.length === 8) return timeStr;
+  
+  // Add :00 seconds
+  return `${timeStr}:00`;
 };
 
 export default function Schedule() {
@@ -113,323 +85,255 @@ export default function Schedule() {
     };
   }, []);
 
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+const fetchAllData = async () => {
+  setLoading(true); // Bật loading
 
-      console.log('Fetching data from API...');
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}` };
 
-      const [schedulesRes, driversRes, busesRes, routesRes] = await Promise.all([
-        fetch(`${API_URL}/schedules`, { headers }),
-        fetch(`${API_URL}/drivers`, { headers }),
-        fetch(`${API_URL}/buses`, { headers }),
-        fetch(`${API_URL}/routes`, { headers })
-      ]);
+ 
 
-      console.log('Response status:', {
-        schedules: schedulesRes.status,
-        drivers: driversRes.status,
-        buses: busesRes.status,
-        routes: routesRes.status
-      });
+  // Gọi đồng thời 4 API chính
+  const [schedulesRes, driversRes, busesRes, routesRes] = await Promise.all([
+    fetch(`${API_URL}/schedules`, { headers }),
+    fetch(`${API_URL}/drivers`, { headers }),
+    fetch(`${API_URL}/buses`, { headers }),
+    fetch(`${API_URL}/routes`, { headers }),
+  ]);
 
-      if (!schedulesRes.ok) {
-        console.error('Schedules API error:', await schedulesRes.text());
-      }
-      if (!driversRes.ok) {
-        console.error('Drivers API error:', await driversRes.text());
-      }
-      if (!busesRes.ok) {
-        console.error('Buses API error:', await busesRes.text());
-      }
-      if (!routesRes.ok) {
-        console.error('Routes API error:', await routesRes.text());
-      }
-
-      const schedulesData = schedulesRes.ok ? await schedulesRes.json() : [];
-      const driversData = driversRes.ok ? await driversRes.json() : [];
-      const busesData = busesRes.ok ? await busesRes.json() : [];
-      const routesData = routesRes.ok ? await routesRes.json() : [];
-
-      console.log('Fetched data:', {
-        schedules: schedulesData.length,
-        drivers: driversData.length,
-        buses: busesData.length,
-        routes: routesData.length
-      });
-
-      // Fetch details for each schedule
-      const schedulesWithDetails = await Promise.all(
-        schedulesData.map(async (schedule) => {
-          try {
-            const detailsRes = await fetch(`${API_URL}/schedules/${schedule.MaLT}/details`, { headers });
-            const details = detailsRes.ok ? await detailsRes.json() : [];
-            return { ...schedule, details };
-          } catch (err) {
-            console.error(`Error fetching details for schedule ${schedule.MaLT}:`, err);
-            return { ...schedule, details: [] };
-          }
-        })
-      );
-
-      setSchedules(schedulesWithDetails);
-      setDrivers(driversData);
-      setBuses(busesData);
-      setRoutes(routesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      alert('Lỗi khi tải dữ liệu! Kiểm tra console để biết chi tiết.');
-    } finally {
-      setLoading(false);
-    }
+  // Hàm xử lý response: nếu lỗi in log, trả về mảng rỗng
+  const parseResponse = async (res, name) => {
+    if (res.ok) return res.json();
+    const errorText = await res.text();
+    console.error(`${name} API lỗi:`, errorText);
+    return [];
   };
 
-  // Fetch attendance data
-  const fetchAttendance = async (scheduleId) => {
-    try {
-      setLoadingAttendance(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/attendance/schedule/${scheduleId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAttendanceList(data);
+  // Lấy dữ liệu từ các API
+  const [schedulesData, driversData, busesData, routesData] = await Promise.all([
+    parseResponse(schedulesRes, 'Schedules'),
+    parseResponse(driversRes, 'Drivers'),
+    parseResponse(busesRes, 'Buses'),
+    parseResponse(routesRes, 'Routes'),
+  ]);
+
+  console.log('Đã lấy dữ liệu:', {
+    schedules: schedulesData.length,
+    drivers: driversData.length,
+    buses: busesData.length,
+    routes: routesData.length,
+  });
+
+  // Lấy chi tiết từng schedule đồng thời, nếu lỗi trả về details rỗng
+  const schedulesWithDetails = await Promise.all(
+    schedulesData.map(async (schedule) => {
+      const detailsRes = await fetch(`${API_URL}/schedules/${schedule.MaLT}/details`, { headers });
+      if (detailsRes.ok) {
+        const details = await detailsRes.json();
+        return { ...schedule, details };
       } else {
-        console.error('Error fetching attendance:', await response.text());
-        setAttendanceList([]);
+        console.error(`Lỗi lấy chi tiết cho schedule ${schedule.MaLT}:`, await detailsRes.text());
+        return { ...schedule, details: [] };
       }
-    } catch (error) {
-      console.error('Error fetching attendance:', error);
-      setAttendanceList([]);
-    } finally {
-      setLoadingAttendance(false);
-    }
-  };
+    })
+  );
 
-  // Handlers
-  const handleRouteChange = async (routeId) => {
-    setFormData({ ...formData, MaTD: routeId });
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/routes/${routeId}/stops`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const stops = await response.json();
-      setAvailableStops(stops);
-      setSelectedStops([]);
-    } catch (error) {
-      console.error('Error fetching route stops:', error);
-      setAvailableStops([]);
-    }
-  };
+  // Cập nhật state với dữ liệu đã lấy
+  setSchedules(schedulesWithDetails);
+  setDrivers(driversData);
+  setBuses(busesData);
+  setRoutes(routesData);
 
-  const handleToggleStop = (stop) => {
-    const index = selectedStops.findIndex(s => s.MaTram === stop.MaTram);
-    if (index >= 0) {
-      // Bỏ chọn và cập nhật lại thứ tự
-      const newStops = selectedStops.filter(s => s.MaTram !== stop.MaTram)
-        .map((s, i) => ({ ...s, ThuTu: (i + 1).toString() }));
-      setSelectedStops(newStops);
+  setLoading(false); // Tắt loading
+};
+// Lấy dữ liệu điểm danh theo scheduleId
+const fetchAttendance = async (scheduleId) => {
+  setLoadingAttendance(true); // Bật loading
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch(`${API_URL}/attendance/schedule/${scheduleId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setAttendanceList(data); // Lưu dữ liệu điểm danh vào state
     } else {
-      // Thêm vào cuối danh sách
-      setSelectedStops([...selectedStops, { ...stop, ThuTu: (selectedStops.length + 1).toString() }]);
+      console.error('Lỗi khi lấy điểm danh:', await res.text());
+      setAttendanceList([]); // Nếu lỗi thì xóa dữ liệu
     }
+  } catch (error) {
+    console.error('Lỗi fetch điểm danh:', error);
+    setAttendanceList([]);
+  } finally {
+    setLoadingAttendance(false); // Tắt loading
+  }
+};
+
+// Xử lý khi đổi tuyến đường
+const handleRouteChange = async (routeId) => {
+  setFormData(prev => ({ ...prev, MaTD: routeId })); // Cập nhật tuyến trong form
+
+  if (!routeId) {
+    setAvailableStops([]); // Không có tuyến thì xóa trạm
+    setSelectedStops([]);
+    return;
+  }
+
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch(`${API_URL}/routes/${routeId}/stops`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const stops = await res.json();
+    setAvailableStops(stops);   // Lưu trạm có thể chọn
+    setSelectedStops(stops);    // Mặc định chọn hết trạm
+  } catch (error) {
+    console.error('Lỗi lấy trạm:', error);
+    setAvailableStops([]);
+    setSelectedStops([]);
+  }
+};
+
+
+const handleSubmit = async (e) => {
+  e.preventDefault(); // Ngăn form submit reload trang
+
+  // Kiểm tra điều kiện bắt buộc
+  if (!formData.MaTD) return alert('Vui lòng chọn tuyến đường!');
+  if (selectedDates.length === 0) return alert('Vui lòng chọn ít nhất 1 ngày!');
+  if (formData.GioBatDau >= formData.GioKetThuc) return alert('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
+
+  // Lấy token và tạo header cho các request
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
   };
 
-  const handleAddDateRange = () => {
-    const from = document.getElementById('fromDate').value;
-    const to = document.getElementById('toDate').value;
-    if (!from || !to) return alert('Vui lòng chọn cả ngày bắt đầu và kết thúc!');
-    
-    const start = new Date(from);
-    const end = new Date(to);
-    if (start > end) return alert('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!');
-    
-    const dates = [];
-    const current = new Date(start);
-    while (current <= end) {
-      const dateStr = current.toISOString().split('T')[0];
-      if (!selectedDates.includes(dateStr)) dates.push(dateStr);
-      current.setDate(current.getDate() + 1);
-    }
-    
-    setSelectedDates([...selectedDates, ...dates].sort());
-    document.getElementById('fromDate').value = '';
-    document.getElementById('toDate').value = '';
-  };
+  let successCount = 0; // Đếm số lịch tạo thành công
 
-  const handleRemoveDate = (date) => {
-    setSelectedDates(selectedDates.filter(d => d !== date));
-  };
+  // Lặp qua từng ngày đã chọn để tạo lịch trình
+  for (const date of selectedDates) {
+    // Tạo mã lịch trình (MaLT) duy nhất dựa trên timestamp và random string
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.random().toString(36).substr(2, 5);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (selectedStops.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 trạm!');
-      return;
-    }
-    if (selectedDates.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 ngày!');
-      return;
-    }
+    // Dữ liệu lịch trình gửi lên API
+    const scheduleData = {
+      MaLT: `LT${timestamp}${random}`,
+      MaTD: formData.MaTD,
+      MaTX: formData.MaTX,
+      MaXB: formData.MaXB,
+      NgayChay: date,
+      GioBatDau: formData.GioBatDau,
+      GioKetThuc: formData.GioKetThuc,
+      TrangThai: 'pending'
+    };
 
-    // Validate time
-    if (formData.GioBatDau >= formData.GioKetThuc) {
-      alert('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
-      return;
-    }
+    // Gửi yêu cầu tạo lịch trình
+    const res = await fetch(`${API_URL}/schedules`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(scheduleData)
+    });
 
-    // Kiểm tra conflict sẽ được thực hiện ở backend
+    if (!res.ok) continue; // Nếu lỗi, bỏ qua ngày này
 
-    try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    // Nếu tạo lịch thành công, thêm chi tiết trạm dừng cho lịch trình
+    for (let i = 0; i < selectedStops.length; i++) {
+      const stop = selectedStops[i];
+      const detailData = {
+        MaCTLT: `CTLT${timestamp}${random}${i}`,
+        MaTram: stop.MaTram
       };
-
-      // Create new schedules for each selected date
-        let successCount = 0;
-        for (let i = 0; i < selectedDates.length; i++) {
-          const date = selectedDates[i];
-          
-          // Generate unique MaLT with proper format (max 50 chars)
-          const timestamp = Date.now().toString().slice(-8); // Last 8 digits
-          const random = Math.random().toString(36).substr(2, 5); // 5 random chars
-          const scheduleData = {
-            MaLT: `LT${timestamp}${random}`,
-            MaTD: formData.MaTD,
-            MaTX: formData.MaTX, // Keep as string, don't convert to int
-            MaXB: formData.MaXB,
-            NgayChay: formatDateForBackend(date),
-            GioBatDau: formData.GioBatDau,
-            GioKetThuc: formData.GioKetThuc,
-            TrangThai: 'pending'
-          };
-
-          console.log('Creating schedule:', scheduleData);
-
-          const response = await fetch(`${API_URL}/schedules`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(scheduleData)
-          });
-
-          if (response.ok) {
-            successCount++;
-            // Add schedule details
-            for (let j = 0; j < selectedStops.length; j++) {
-              const stop = selectedStops[j];
-              const detailData = {
-                MaCTLT: `CTLT${timestamp}${random}${j}`,
-                MaTram: stop.MaTram,
-                ThuTu: stop.ThuTu
-              };
-              
-              console.log('Adding detail:', detailData);
-              
-              await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/details`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(detailData)
-              });
-            }
-
-            // Tạo điểm danh cho học sinh thuộc các trạm
-            try {
-              console.log('📋 Creating attendance for schedule:', scheduleData.MaLT);
-              console.log('📋 API URL:', `${API_URL}/schedules/${scheduleData.MaLT}/attendance`);
-              console.log('📋 Headers:', headers);
-              
-              const attendanceResponse = await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
-                method: 'POST',
-                headers
-              });
-              
-              console.log('📋 Attendance response status:', attendanceResponse.status);
-              
-              if (attendanceResponse.ok) {
-                const attendanceData = await attendanceResponse.json();
-                console.log('✅ Created attendance:', attendanceData);
-              } else {
-                const errorText = await attendanceResponse.text();
-                console.error('❌ Could not create attendance:', errorText);
-              }
-            } catch (attendanceError) {
-              console.error('❌ Error creating attendance:', attendanceError);
-              // Không dừng quá trình tạo lịch trình nếu tạo điểm danh lỗi
-            }
-          } else {
-            const errorData = await response.json();
-            console.error('Error creating schedule:', errorData);
-            
-            // Hiển thị lỗi conflict nếu có
-            if (response.status === 400 && errorData.error) {
-              alert(`Lỗi ngày ${formatDateDisplay(date)}: ${errorData.error}`);
-              break; // Dừng tạo các lịch trình còn lại
-            }
-          }
-          
-          // Small delay to ensure unique timestamps
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        alert(`Tạo thành công ${successCount}/${selectedDates.length} lịch trình!`);
-
-      // Refresh data
-      await fetchAllData();
-
-      setShowModal(false);
-      setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
-      setSelectedStops([]);
-      setAvailableStops([]);
-      setSelectedDates([]);
-    } catch (error) {
-      console.error('Error saving schedule:', error);
-      alert('Lỗi khi lưu lịch trình!');
+      await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/details`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(detailData)
+      });
     }
-  };
+
+    // Tạo điểm danh cho lịch trình (bỏ xử lý lỗi cho đơn giản)
+    await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
+      method: 'POST',
+      headers
+    });
+
+    successCount++; // Tăng số lịch tạo thành công
+
+    // Delay nhỏ để tránh trùng mã lịch trình
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  // Thông báo kết quả cho người dùng
+  alert(`Tạo thành công ${successCount}/${selectedDates.length} lịch trình!`);
+
+  // Reset lại form và dữ liệu chọn
+  setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
+  setSelectedDates([]);
+  setSelectedStops([]);
+  setAvailableStops([]);
+
+  // Đóng modal
+  setShowModal(false);
+
+  // Tải lại dữ liệu mới
+  await fetchAllData();
+};
 
 
+// Chọn hoặc bỏ chọn một lịch trình theo MaLT
+const handleSelectSchedule = (MaLT) => {
+  setSelectedScheduleIds(prev =>
+    prev.includes(MaLT)
+      ? prev.filter(id => id !== MaLT) // Nếu đã chọn thì bỏ chọn
+      : [...prev, MaLT]                // Nếu chưa chọn thì thêm vào
+  );
+};
 
-  const handleSelectSchedule = (MaLT) => {
-    setSelectedScheduleIds(prev => 
-      prev.includes(MaLT) ? prev.filter(id => id !== MaLT) : [...prev, MaLT]
+// Chọn tất cả hoặc bỏ chọn tất cả lịch trình hiển thị (theo trạng thái và ngày tìm kiếm)
+const handleSelectAll = () => {
+  // Lọc danh sách lịch trình chưa bị xóa và (nếu có) theo ngày tìm kiếm
+  const filtered = schedules.filter(
+    s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay)
+  );
+
+  // Nếu tất cả đã được chọn thì bỏ chọn hết, ngược lại chọn hết
+  setSelectedScheduleIds(
+    selectedScheduleIds.length === filtered.length
+      ? []
+      : filtered.map(s => s.MaLT)
+  );
+};
+
+// Xóa hàng loạt các lịch trình đã chọn
+const handleDeleteSelected = async () => {
+  if (selectedScheduleIds.length === 0) return alert('Vui lòng chọn ít nhất 1 lịch trình!');
+  if (!window.confirm(`Xóa ${selectedScheduleIds.length} lịch trình?`)) return;
+
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Gửi đồng thời các request xóa từng lịch trình
+    await Promise.all(
+      selectedScheduleIds.map(id =>
+        fetch(`${API_URL}/schedules/${id}`, { method: 'DELETE', headers })
+      )
     );
-  };
 
-  const handleSelectAll = () => {
-    const filtered = schedules.filter(s => s.TrangThaiXoa === '0' && (!searchDate || formatDateForBackend(searchDate) === s.NgayChay));
-    setSelectedScheduleIds(selectedScheduleIds.length === filtered.length ? [] : filtered.map(s => s.MaLT));
-  };
+    alert('Xóa lịch trình thành công!');
+    setSelectedScheduleIds([]); // Reset danh sách chọn
+    await fetchAllData();        // Tải lại dữ liệu mới
+  } catch (error) {
+    console.error('Lỗi khi xóa lịch trình:', error);
+    alert('Lỗi khi xóa lịch trình!');
+  }
+};
 
-  const handleDeleteSelected = async () => {
-    if (selectedScheduleIds.length === 0) return alert('Vui lòng chọn ít nhất 1 lịch trình!');
-    if (!window.confirm(`Xóa ${selectedScheduleIds.length} lịch trình?`)) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      await Promise.all(
-        selectedScheduleIds.map(id =>
-          fetch(`${API_URL}/schedules/${id}`, { method: 'DELETE', headers })
-        )
-      );
-
-      alert('Xóa lịch trình thành công!');
-      setSelectedScheduleIds([]);
-      await fetchAllData();
-    } catch (error) {
-      console.error('Error deleting schedules:', error);
-      alert('Lỗi khi xóa lịch trình!');
-    }
-  };
 
   // Auto refresh map data every 5 seconds when map tab is active
   useEffect(() => {
@@ -479,8 +383,8 @@ export default function Schedule() {
 
   // Initialize map for detail modal
   useEffect(() => {
-    if (showDetailModal && selectedSchedule && detailMapRef.current && !detailMapInstanceRef.current && activeTab === 'map') {
-      // Create map
+    // Create map when switching to map tab
+    if (showDetailModal && activeTab === 'map' && detailMapRef.current && !detailMapInstanceRef.current) {
       const map = L.map(detailMapRef.current).setView([10.7626, 106.6818], 13);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -488,129 +392,87 @@ export default function Schedule() {
       }).addTo(map);
 
       detailMapInstanceRef.current = map;
-
-      // Draw route and stations
-      const stations = selectedSchedule.details || [];
-      if (stations.length > 0) {
-        // Add station markers
-        stations.forEach((station) => {
-          const lat = parseFloat(station.ViDo);
-          const lng = parseFloat(station.KinhDo);
-          
-          const isPassed = station.TrangThaiQua === '1';
-          const markerColor = isPassed ? '#22c55e' : '#9ca3af';
-          
-          const stationIcon = L.divIcon({
-            className: 'custom-station-marker',
-            html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-          });
-
-          L.marker([lat, lng], { icon: stationIcon })
-            .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
-            .addTo(map);
-        });
-
-        // Fetch and draw real route using OSRM
-        const fetchRealRoute = async () => {
-          try {
-            const coords = stations.map(s => `${parseFloat(s.KinhDo)},${parseFloat(s.ViDo)}`).join(';');
-            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-            
-            const response = await fetch(osrmUrl);
-            const data = await response.json();
-            
-            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-              const route = data.routes[0];
-              const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-              
-              // Draw the route with segments colored based on completion
-              for (let i = 0; i < stations.length - 1; i++) {
-                const currentStation = stations[i];
-                const isPassed = currentStation.TrangThaiQua === '1';
-                const color = isPassed ? '#22c55e' : '#3b82f6';
-                
-                // Find segment coordinates between current and next station
-                const startIdx = coordinates.findIndex(coord => 
-                  Math.abs(coord[0] - parseFloat(currentStation.ViDo)) < 0.001 &&
-                  Math.abs(coord[1] - parseFloat(currentStation.KinhDo)) < 0.001
-                );
-                
-                if (i < stations.length - 1) {
-                  const nextStation = stations[i + 1];
-                  const endIdx = coordinates.findIndex((coord, idx) => 
-                    idx > startIdx &&
-                    Math.abs(coord[0] - parseFloat(nextStation.ViDo)) < 0.001 &&
-                    Math.abs(coord[1] - parseFloat(nextStation.KinhDo)) < 0.001
-                  );
-                  
-                  if (startIdx !== -1 && endIdx !== -1) {
-                    const segmentCoords = coordinates.slice(startIdx, endIdx + 1);
-                    L.polyline(segmentCoords, { 
-                      color: color, 
-                      weight: 5, 
-                      opacity: 0.8,
-                      lineJoin: 'round'
-                    }).addTo(map);
-                  }
-                }
-              }
-              
-              map.fitBounds(coordinates);
-            } else {
-              // Fallback to straight lines
-              for (let i = 0; i < stations.length - 1; i++) {
-                const currentStation = stations[i];
-                const nextStation = stations[i + 1];
-                const isPassed = currentStation.TrangThaiQua === '1';
-                const color = isPassed ? '#22c55e' : '#3b82f6';
-                
-                L.polyline([
-                  [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
-                  [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
-                ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
-              }
-              
-              const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-              map.fitBounds(routeCoords);
-            }
-          } catch (error) {
-            console.error('Error fetching route from OSRM:', error);
-            // Fallback to straight lines
-            for (let i = 0; i < stations.length - 1; i++) {
-              const currentStation = stations[i];
-              const nextStation = stations[i + 1];
-              const isPassed = currentStation.TrangThaiQua === '1';
-              const color = isPassed ? '#22c55e' : '#3b82f6';
-              
-              L.polyline([
-                [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
-                [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
-              ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
-            }
-            
-            const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-            map.fitBounds(routeCoords);
-          }
-        };
-
-        fetchRealRoute();
-      }
     }
 
+    // Cleanup when modal closes or switching away from map tab
     return () => {
-      if (detailMapInstanceRef.current) {
+      if (detailMapInstanceRef.current && (!showDetailModal || activeTab !== 'map')) {
         detailMapInstanceRef.current.remove();
         detailMapInstanceRef.current = null;
       }
     };
-  }, [showDetailModal, selectedSchedule, activeTab]);
+  }, [showDetailModal, activeTab]);
+
+  // Update map markers and routes when data changes
+  useEffect(() => {
+    const map = detailMapInstanceRef.current;
+    if (!map || !selectedSchedule || activeTab !== 'map') return;
+
+    // Clear existing markers and polylines
+    map.eachLayer((layer) => {
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const stations = selectedSchedule.details || [];
+    if (stations.length === 0) return;
+
+    // Add station markers
+    stations.forEach((station) => {
+      const lat = parseFloat(station.ViDo);
+      const lng = parseFloat(station.KinhDo);
+      
+      const isPassed = station.TrangThaiQua === '1';
+      const markerColor = isPassed ? '#22c55e' : '#9ca3af';
+      
+      const stationIcon = L.divIcon({
+        className: 'custom-station-marker',
+        html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      L.marker([lat, lng], { icon: stationIcon })
+        .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
+        .addTo(map);
+    });
+
+    // Draw route if there are at least 2 stations
+    if (stations.length >= 2) {
+      // Draw straight lines between stations
+      for (let i = 0; i < stations.length - 1; i++) {
+        const currentStation = stations[i];
+        const nextStation = stations[i + 1];
+        const isPassed = currentStation.TrangThaiQua === '1';
+        const color = isPassed ? '#22c55e' : '#3b82f6';
+        
+        L.polyline([
+          [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
+          [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
+        ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
+      }
+      
+      // Fit bounds only on first load
+      const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
+      if (routeCoords.length > 0 && !map._boundsSet) {
+        map.fitBounds(routeCoords);
+        map._boundsSet = true;
+      }
+    } else if (stations.length === 1) {
+      // If only 1 station, just center the map on it
+      const station = stations[0];
+      if (!map._boundsSet) {
+        map.setView([parseFloat(station.ViDo), parseFloat(station.KinhDo)], 15);
+        map._boundsSet = true;
+      }
+    }
+  }, [selectedSchedule, activeTab]);
 
 
 
   const filteredSchedules = schedules
-    .filter(s => s.TrangThaiXoa === '0' && (!searchDate || formatDateForBackend(searchDate) === s.NgayChay))
+    .filter(s => s.TrangThaiXoa === '0' && (!searchDate || searchDate === s.NgayChay))
     .sort((a, b) => {
       // Tính trạng thái
       const getStatus = (schedule) => {
@@ -632,9 +494,8 @@ export default function Schedule() {
       }
 
       // Cùng trạng thái thì sắp xếp theo ngày gần nhất
-      const dateA = parseDate(a.NgayChay);
-      const dateB = parseDate(b.NgayChay);
-      return new Date(dateA) - new Date(dateB);
+      // NgayChay is already in YYYY-MM-DD format
+      return new Date(a.NgayChay) - new Date(b.NgayChay);
     });
 
 
@@ -736,7 +597,7 @@ export default function Schedule() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 text-sm text-gray-900">
                       <Clock size={14} className="text-gray-400" />
-                      {schedule.GioBatDau} - {schedule.GioKetThuc}
+                      {formatTimeDisplay(schedule.GioBatDau)} - {formatTimeDisplay(schedule.GioKetThuc)}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -789,8 +650,8 @@ export default function Schedule() {
             <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div><p className="text-sm text-gray-600">Tài xế</p><p className="font-medium text-gray-900">{selectedSchedule.TenTX} - {selectedSchedule.SDT}</p></div>
               <div><p className="text-sm text-gray-600">Xe buýt</p><p className="font-medium text-gray-900">{selectedSchedule.MaXB} ({selectedSchedule.BienSo})</p></div>
-              <div><p className="text-sm text-gray-600">Giờ bắt đầu</p><p className="font-medium text-gray-900">{selectedSchedule.GioBatDau}</p></div>
-              <div><p className="text-sm text-gray-600">Giờ kết thúc</p><p className="font-medium text-gray-900">{selectedSchedule.GioKetThuc}</p></div>
+              <div><p className="text-sm text-gray-600">Giờ bắt đầu</p><p className="font-medium text-gray-900">{formatTimeDisplay(selectedSchedule.GioBatDau)}</p></div>
+              <div><p className="text-sm text-gray-600">Giờ kết thúc</p><p className="font-medium text-gray-900">{formatTimeDisplay(selectedSchedule.GioKetThuc)}</p></div>
             </div>
 
             {/* Tabs */}
@@ -803,7 +664,7 @@ export default function Schedule() {
               <button 
                 onClick={() => setActiveTab('map')}
                 className={`px-4 py-2 font-medium ${activeTab === 'map' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}>
-                Bản đồ {activeTab === 'map' && <span className="text-xs">(🔄 Tự động cập nhật mỗi 5s)</span>}
+                Bản đồ {activeTab === 'map' && <span className="text-xs">( Tự động cập nhật mỗi 5s)</span>}
               </button>
               <button 
                 onClick={() => { setActiveTab('attendance'); fetchAttendance(selectedSchedule.MaLT); }}
@@ -1034,44 +895,43 @@ export default function Schedule() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Chọn trạm dừng <span className="text-red-500">*</span></h3>
-                <p className="text-sm text-gray-600 mb-4">Click vào trạm để chọn theo thứ tự. Click lại để bỏ chọn.</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách trạm của tuyến</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {availableStops.length > 0 
+                    ? `Tuyến này có ${availableStops.length} trạm (đã được sắp xếp theo thứ tự). Tất cả trạm sẽ được thêm vào lịch trình.`
+                    : 'Chọn tuyến đường để xem danh sách trạm'}
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   {availableStops.length > 0 ? (
-                    availableStops.map(stop => {
-                      const selected = selectedStops.find(s => s.MaTram === stop.MaTram);
-                      return (
-                        <div key={stop.MaTram} onClick={() => handleToggleStop(stop)}
-                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                            selected ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-300'
-                          }`}>
-                          <div className="flex items-center gap-3">
-                            {selected && (
-                              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                                {selected.ThuTu}
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <h5 className="font-medium text-gray-900">{stop.TenTram}</h5>
-                              <p className="text-xs text-gray-600 mt-1">{stop.DiaChi}</p>
-                            </div>
+                    availableStops.map(stop => (
+                      <div key={stop.MaTram} className="p-4 border-2 border-blue-500 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0 bg-blue-600 text-white">
+                            {stop.ThuTu}
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-900">{stop.TenTram}</h5>
+                            <p className="text-xs text-gray-600 mt-1">{stop.DiaChi}</p>
                           </div>
                         </div>
-                      );
-                    })
+                      </div>
+                    ))
                   ) : (
                     <p className="col-span-2 text-center text-gray-500 py-8">
-                      {formData.MaTD ? 'Tuyến này chưa có trạm' : 'Vui lòng chọn tuyến đường'}
+                      {formData.MaTD ? 'Tuyến này chưa có trạm. Vui lòng thêm trạm trong trang "Tuyến đường".' : 'Vui lòng chọn tuyến đường'}
                     </p>
                   )}
                 </div>
-                {selectedStops.length > 0 && (
-                  <p className="text-sm text-green-600 mt-4">✓ Đã chọn {selectedStops.length} trạm</p>
-                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => { setShowModal(false); }}
+                <button type="button" onClick={() => { 
+                  setShowModal(false);
+                  setFormData({ MaTD: '', MaTX: '', MaXB: '', GioBatDau: '', GioKetThuc: '' });
+                  setSelectedStops([]);
+                  setAvailableStops([]);
+                  setSelectedDates([]);
+                }}
                   className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   Tạo lịch trình

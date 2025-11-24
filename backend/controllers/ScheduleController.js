@@ -23,9 +23,9 @@ export const createSchedule = (req, res) => {
     MaXB: req.body.MaXB,
     MaTD: req.body.MaTD,
     MaTX: req.body.MaTX,
-    NgayChay: req.body.NgayChay,
-    GioBatDau: req.body.GioBatDau,
-    GioKetThuc: req.body.GioKetThuc,
+    NgayChay: req.body.NgayChay, // Format: YYYY-MM-DD
+    GioBatDau: req.body.GioBatDau, // Format: HH:MM:SS
+    GioKetThuc: req.body.GioKetThuc, // Format: HH:MM:SS
     TrangThai: req.body.TrangThai || 'pending',
     TrangThaiXoa: '0'
   };
@@ -58,9 +58,9 @@ export const updateSchedule = (req, res) => {
     MaXB: req.body.MaXB,
     MaTD: req.body.MaTD,
     MaTX: req.body.MaTX,
-    NgayChay: req.body.NgayChay,
-    GioBatDau: req.body.GioBatDau,
-    GioKetThuc: req.body.GioKetThuc,
+    NgayChay: req.body.NgayChay, // Format: YYYY-MM-DD
+    GioBatDau: req.body.GioBatDau, // Format: HH:MM:SS
+    GioKetThuc: req.body.GioKetThuc, // Format: HH:MM:SS
     TrangThai: req.body.TrangThai
   };
 
@@ -117,7 +117,6 @@ export const addScheduleDetail = (req, res) => {
     MaCTLT: req.body.MaCTLT,
     MaLT: req.params.id,
     MaTram: req.body.MaTram,
-    ThuTu: req.body.ThuTu,
     TrangThaiQua: '0',
     TrangThaiXoa: '0'
   };

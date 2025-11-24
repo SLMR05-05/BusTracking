@@ -69,7 +69,16 @@ const StudentModel = {
       WHERE hs.MaTram IN (${placeholders}) AND hs.TrangThaiXoa = '0'
     `;
     db.query(sql, stationIds, callback);
-  }
+  },
+   getLatestId: (callback) => {
+  const sql = `
+    SELECT MaHS 
+    FROM hocsinh
+    ORDER BY MaHS DESC
+    LIMIT 1
+  `;
+  db.query(sql, callback);
+}
 };
 
 export default StudentModel;

@@ -48,7 +48,16 @@ const BusModel = {
   updateLocation: (locationData, callback) => {
     const sql = "INSERT INTO vitrixe SET ?";
     db.query(sql, locationData, callback);
-  }
+  },
+   getLatestId: (callback) => {
+  const sql = `
+    SELECT MaXB 
+    FROM xebuyt
+    ORDER BY MaXB DESC
+    LIMIT 1
+  `;
+  db.query(sql, callback);
+}
 };
 
 export default BusModel;
