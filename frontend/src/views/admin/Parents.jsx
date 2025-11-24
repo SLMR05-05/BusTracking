@@ -183,9 +183,6 @@ export default function ParentsManagement() {
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
-            Tìm thấy <span className="font-bold text-blue-600">{filteredParents.length}</span> phụ huynh
-          </div>
         </div>
       </div>      
 
