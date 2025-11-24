@@ -1,296 +1,291 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockTracking } from '../../data/mockData';
-import { useAuth } from '../../contexts/AuthContext';
-import { Clock, Users, MapPin, AlertTriangle, CheckCircle, MessageSquare, Navigation } from 'lucide-react';
+import axios from 'axios';
+// Import Context Authentication
+import { useAuth } from '../../contexts/AuthContext'; 
+
+// Import Icons
+import { Clock, Users, CheckCircle, Navigation, CalendarX, AlertTriangle, MessageSquare, AlertOctagon } from 'lucide-react';
+
+// Import 2 Components con vừa tách
+import IncidentModal from '../../components/driver/IncidentModal';
+import EmergencyModal from '../../components/driver/EmergencyModal';
+
+// Cấu hình URL API
+const API_BASE_URL = 'http://localhost:5000/api/driver-dashboard'; 
 
 export default function DriverDashboard() {
-  const { user } = useAuth();
-  const [currentBus, setCurrentBus] = useState(null);
-  const [studentsToPickup, setStudentsToPickup] = useState([]);
-  const [checkedStudents, setCheckedStudents] = useState(new Set());
-  const [incidents, setIncidents] = useState([]);
+  const { user, token } = useAuth();
+  
+  // --- State quản lý dữ liệu ---
+  const [currentSchedule, setCurrentSchedule] = useState(null);
+  const [students, setStudents] = useState([]); 
+  const [loading, setLoading] = useState(true);
+  
+  // --- State quản lý UI ---
   const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- 1. LOAD DỮ LIỆU ---
   useEffect(() => {
-    // Simulate finding driver's bus and students
-    const driverBus = mockTracking.find(bus => bus.driverName.includes(user?.name?.split(' ')[0] || 'Trần'));
-    setCurrentBus(driverBus || mockTracking[0]);
-    
-    // Get students for this route
-    const routeStudents = mockStudents.filter(student => 
-      student.busId === (driverBus?.busId || 'BS-001') && student.status === 'active'
-    );
-    setStudentsToPickup(routeStudents);
-  }, [user]);
+    const fetchData = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const authToken = token || localStorage.getItem('accessToken');
+        if (!authToken) { setLoading(false); return; }
 
-  const handleStudentCheck = (studentId, action) => {
-    const newChecked = new Set(checkedStudents);
-    if (action === 'pickup') {
-      newChecked.add(`${studentId}-pickup`);
-    } else if (action === 'dropoff') {
-      newChecked.add(`${studentId}-dropoff`);
-    }
-    setCheckedStudents(newChecked);
-    
-    // Simulate notification
-    const student = studentsToPickup.find(s => s.id === studentId);
-    alert(`Đã xác nhận ${action === 'pickup' ? 'đón' : 'trả'} học sinh ${student?.name}`);
-  };
+        const config = { headers: { Authorization: `Bearer ${authToken}` } };
+        
+        // Lấy ngày hiện tại theo múi giờ máy user
+        const offset = new Date().getTimezoneOffset() * 60000;
+        const dateStr = new Date(Date.now() - offset).toISOString().split('T')[0];
 
-  const handleIncidentReport = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const incident = {
-      id: Date.now(),
-      type: formData.get('type'),
-      description: formData.get('description'),
-      time: new Date().toLocaleString('vi-VN'),
-      status: 'Đã báo cáo'
+        // Gọi API lấy lịch trình
+        const scheduleRes = await axios.get(`${API_BASE_URL}/schedules?date=${dateStr}`, config);
+
+        if (!scheduleRes.data || scheduleRes.data.length === 0) {
+          setCurrentSchedule(null); setStudents([]); setLoading(false); return;
+        }
+
+        const activeSchedule = scheduleRes.data[0];
+        setCurrentSchedule(activeSchedule);
+
+        // Gọi song song lấy DS học sinh và điểm danh
+        const [studentsRes, attendanceRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/schedules/${activeSchedule.MaLT}/students`, config),
+          axios.get(`${API_BASE_URL}/schedules/${activeSchedule.MaLT}/attendance`, config)
+        ]);
+
+        // Mapping dữ liệu
+        const processedStudents = studentsRes.data.map(std => {
+          const record = attendanceRes.data.find(r => r.MaHS === std.MaHS);
+          return {
+            id: std.MaHS, name: std.TenHS, class: std.Lop, stopName: std.TenTram,
+            parentName: std.TenPH, phone: std.SDT_PH,
+            status: record ? record.TrangThai : '0' 
+          };
+        });
+        setStudents(processedStudents);
+      } catch (err) {
+        console.error("Lỗi tải dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    setIncidents([incident, ...incidents]);
-    setShowIncidentForm(false);
-    alert('Đã gửi báo cáo sự cố thành công!');
-    e.target.reset();
+    fetchData();
+  }, [user, token]);
+
+  // --- 2. XỬ LÝ ĐIỂM DANH ---
+  const handleStudentCheck = async (studentId, action) => {
+    if (!currentSchedule) return;
+    try {
+      const authToken = token || localStorage.getItem('accessToken');
+      const statusToSend = action === 'pickup' ? '1' : '2';
+      
+      await axios.post(
+        `${API_BASE_URL}/schedules/${currentSchedule.MaLT}/students/${studentId}/attendance`,
+        { status: statusToSend },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status: statusToSend } : s));
+    } catch (err) {
+      alert("Lỗi cập nhật điểm danh!");
+    }
   };
 
-  if (!currentBus) {
-    return <div className="p-6">Đang tải thông tin...</div>;
-  }
+  // --- 3. XỬ LÝ GỬI BÁO CÁO SỰ CỐ ---
+  const handleIncidentSubmit = async (data) => {
+    try {
+      setIsSubmitting(true);
+      const authToken = token || localStorage.getItem('accessToken');
+      
+      await axios.post(`${API_BASE_URL}/incidents`, {
+        ...data,
+        scheduleId: currentSchedule?.MaLT || null,
+        busId: currentSchedule?.MaXB || null,
+      }, { headers: { Authorization: `Bearer ${authToken}` } });
+
+      alert("Gửi báo cáo thành công!");
+      setShowIncidentForm(false);
+    } catch (error) {
+      console.error("Lỗi gửi báo cáo:", error);
+      alert("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- 4. XỬ LÝ GỬI SOS ---
+  const handleEmergencyConfirm = async () => {
+    try {
+      setIsSubmitting(true);
+      const authToken = token || localStorage.getItem('accessToken');
+      
+      await axios.post(`${API_BASE_URL}/emergency`, {
+        scheduleId: currentSchedule?.MaLT || null,
+        type: "SOS_BUTTON"
+      }, { headers: { Authorization: `Bearer ${authToken}` } });
+
+      alert("ĐÃ GỬI TÍN HIỆU KHẨN CẤP! HÃY GIỮ BÌNH TĨNH.");
+      setShowEmergencyModal(false);
+    } catch (error) {
+      console.error("Lỗi gửi SOS:", error);
+      alert("Không thể gửi tín hiệu! Hãy gọi điện trực tiếp.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- RENDER UI ---
+  const pickedUpCount = students.filter(s => s.status === '1' || s.status === '2').length;
+  const droppedOffCount = students.filter(s => s.status === '2').length;
+
+  if (loading) return <div className="flex justify-center items-center h-screen text-blue-600"><Clock className="animate-spin mr-2"/> Đang tải...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6 bg-gray-50 min-h-screen relative">
+      
+      {/* Gọi 2 Modal Component tại đây */}
+      <IncidentModal 
+        isOpen={showIncidentForm} 
+        onClose={() => setShowIncidentForm(false)} 
+        onSubmit={handleIncidentSubmit}
+        isLoading={isSubmitting}
+      />
+      <EmergencyModal
+        isOpen={showEmergencyModal}
+        onClose={() => setShowEmergencyModal(false)}
+        onConfirm={handleEmergencyConfirm}
+        isLoading={isSubmitting}
+      />
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-6">
-        <div className="flex justify-between items-center">
+      <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-2xl p-6 shadow-lg">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Chào mừng, {user?.name || 'Tài xế'}!</h1>
-            <p className="text-blue-100 mt-1">Lịch làm việc hôm nay - {new Date().toLocaleDateString('vi-VN')}</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Xin chào, {user?.name || 'Tài xế'}!</h1>
+            <p className="text-blue-200 mt-1 flex items-center gap-2">
+              <Clock size={16}/> {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">{currentBus.busId}</div>
-            <div className="text-blue-100">{currentBus.routeName}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Current Status */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Vị trí hiện tại</div>
-              <div className="text-lg font-bold text-gray-900">{currentBus.currentLocation}</div>
-            </div>
-            <MapPin className="text-blue-500" size={32} />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Điểm tiếp theo</div>
-              <div className="text-lg font-bold text-gray-900">{currentBus.nextStop}</div>
-            </div>
-            <Navigation className="text-green-500" size={32} />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Học sinh trên xe</div>
-              <div className="text-lg font-bold text-gray-900">{currentBus.studentsOnBoard}</div>
-            </div>
-            <Users className="text-purple-500" size={32} />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Dự kiến đến</div>
-              <div className="text-lg font-bold text-gray-900">{currentBus.estimatedArrival}</div>
-            </div>
-            <Clock className="text-orange-500" size={32} />
+          <div className="text-left md:text-right bg-white/10 p-3 rounded-lg backdrop-blur-sm min-w-[200px]">
+            <div className="text-xl font-bold text-yellow-300">{currentSchedule?.BienSo || '---'}</div>
+            <div className="text-sm text-blue-100">{currentSchedule?.TenTuyenDuong || 'Chưa có lịch'}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Student List */}
-        <div className="bg-white rounded-xl shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <Users className="text-blue-600" size={24} />
-              Danh sách học sinh ({studentsToPickup.length})
+      {/* Thống kê */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-blue-500 flex justify-between items-center">
+          <div><div className="text-sm text-gray-500">Tổng học sinh</div><div className="text-2xl font-bold text-gray-800">{students.length}</div></div>
+          <div className="bg-blue-100 p-3 rounded-full text-blue-600"><Users size={24} /></div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-green-500 flex justify-between items-center">
+          <div><div className="text-sm text-gray-500">Đã lên xe</div><div className="text-2xl font-bold text-gray-800">{pickedUpCount}/{students.length}</div></div>
+          <div className="bg-green-100 p-3 rounded-full text-green-600"><CheckCircle size={24} /></div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-purple-500 flex justify-between items-center">
+          <div><div className="text-sm text-gray-500">Đã trả</div><div className="text-2xl font-bold text-gray-800">{droppedOffCount}/{students.length}</div></div>
+          <div className="bg-purple-100 p-3 rounded-full text-purple-600"><Navigation size={24} /></div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Cột 1: Danh sách học sinh */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden min-h-[400px] border border-gray-100">
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Users className="text-blue-600" size={20} /> Danh sách đón trả
             </h2>
-            <p className="text-gray-600 text-sm mt-1">Điểm danh học sinh lên/xuống xe</p>
+            {currentSchedule && (
+              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                Mã Lịch: {currentSchedule.MaLT.substring(0, 8)}...
+              </span>
+            )}
           </div>
-          <div className="max-h-96 overflow-y-auto">
-            {studentsToPickup.map((student) => (
-              <div key={student.id} className="p-4 border-b last:border-b-0 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {student.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{student.name}</div>
-                      <div className="text-sm text-gray-500">{student.grade} • {student.studentId}</div>
-                      <div className="text-xs text-gray-400">Đón: {student.pickupTime} • Trả: {student.dropoffTime}</div>
+          
+          {!currentSchedule ? (
+            <div className="flex flex-col items-center justify-center h-full py-20 text-gray-400">
+              <CalendarX size={64} className="mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-500">Không có lịch trình hôm nay</p>
+            </div>
+          ) : students.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">Chưa có danh sách học sinh.</div>
+          ) : (
+            <div className="max-h-[600px] overflow-y-auto divide-y divide-gray-100">
+              {students.map((student) => {
+                 if (student.id == null) return null;
+                 const isPickedUp = student.status === '1';
+                 const isDroppedOff = student.status === '2';
+                 return (
+                  <div key={student.id} className="p-4 hover:bg-blue-50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 
+                          ${isDroppedOff ? 'bg-gray-400' : isPickedUp ? 'bg-green-500' : 'bg-blue-500'}`}>
+                          {student.name?.charAt(0) || 'U'} 
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-900">{student.name}</div>
+                          <div className="text-sm text-gray-500">{student.stopName}</div>
+                          {student.phone && <div className="text-xs text-gray-400">PH: {student.parentName} - {student.phone}</div>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleStudentCheck(student.id, 'pickup')} disabled={isPickedUp || isDroppedOff} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${isPickedUp ? 'bg-green-100 text-green-700 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>{isPickedUp && <CheckCircle size={14}/>} {isPickedUp ? 'Đã lên' : 'Đón'}</button>
+                        <button onClick={() => handleStudentCheck(student.id, 'dropoff')} disabled={!isPickedUp || isDroppedOff} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${isDroppedOff ? 'bg-gray-200 text-gray-600 cursor-default' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>{isDroppedOff && <CheckCircle size={14}/>} {isDroppedOff ? 'Đã trả' : 'Trả'}</button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleStudentCheck(student.id, 'pickup')}
-                      disabled={checkedStudents.has(`${student.id}-pickup`)}
-                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        checkedStudents.has(`${student.id}-pickup`)
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                      }`}
-                    >
-                      {checkedStudents.has(`${student.id}-pickup`) ? '✓ Đã đón' : 'Đón'}
-                    </button>
-                    <button
-                      onClick={() => handleStudentCheck(student.id, 'dropoff')}
-                      disabled={checkedStudents.has(`${student.id}-dropoff`)}
-                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        checkedStudents.has(`${student.id}-dropoff`)
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                      }`}
-                    >
-                      {checkedStudents.has(`${student.id}-dropoff`) ? '✓ Đã trả' : 'Trả'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                 );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Incident Reporting */}
+        {/* Cột 2: Sidebar (Actions) */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border">
-            <div className="p-6 border-b">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                  <AlertTriangle className="text-orange-600" size={24} />
-                  Báo cáo sự cố
-                </h2>
-                <button
-                  onClick={() => setShowIncidentForm(!showIncidentForm)}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                >
-                  + Báo cáo mới
+            {/* Nút Báo cáo sự cố */}
+            <div className="bg-white rounded-xl shadow-sm p-5 border border-orange-100 hover:shadow-md transition-shadow">
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <AlertTriangle className="text-orange-500" size={20}/> Báo cáo sự cố
+                </h3>
+                <p className="text-sm text-gray-500 mb-3">Gửi báo cáo nếu gặp tắc đường, hỏng xe hoặc vấn đề học sinh.</p>
+                <button 
+                    onClick={() => setShowIncidentForm(true)}
+                    className="w-full py-2.5 bg-orange-50 text-orange-700 font-medium rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors flex items-center justify-center gap-2">
+                    <MessageSquare size={18} />
+                    Tạo báo cáo mới
                 </button>
-              </div>
             </div>
-            
-            {showIncidentForm && (
-              <div className="p-6 border-b bg-orange-50">
-                <form onSubmit={handleIncidentReport} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Loại sự cố
-                    </label>
-                    <select
-                      name="type"
-                      required
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="">Chọn loại sự cố</option>
-                      <option value="Tắc đường">Tắc đường</option>
-                      <option value="Hỏng xe">Hỏng xe</option>
-                      <option value="Tai nạn">Tai nạn</option>
-                      <option value="Học sinh ốm">Học sinh ốm</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mô tả chi tiết
-                    </label>
-                    <textarea
-                      name="description"
-                      required
-                      rows={3}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="Mô tả chi tiết sự cố..."
-                    ></textarea>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
-                    >
-                      Gửi báo cáo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowIncidentForm(false)}
-                      className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
 
-            <div className="max-h-64 overflow-y-auto">
-              {incidents.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
-                  <CheckCircle className="mx-auto mb-2 text-green-500" size={48} />
-                  <p>Không có sự cố nào được báo cáo hôm nay</p>
-                </div>
-              ) : (
-                incidents.map((incident) => (
-                  <div key={incident.id} className="p-4 border-b last:border-b-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-gray-900">{incident.type}</div>
-                        <div className="text-sm text-gray-600 mt-1">{incident.description}</div>
-                        <div className="text-xs text-gray-400 mt-2">{incident.time}</div>
-                      </div>
-                      <span className="bg-green-100 text-green-800 px-2 py-1 text-xs rounded-full">
-                        {incident.status}
-                      </span>
+            {/* Nút Cảnh báo khẩn cấp */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h3>
+                <div className="space-y-3">
+                  <button 
+                    onClick={() => setShowEmergencyModal(true)} 
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 py-4 px-4 rounded-xl flex items-center gap-3 border border-red-100 transition-colors font-semibold"
+                  >
+                    <div className="bg-red-200 p-2 rounded-full">
+                      <AlertOctagon size={24} className="text-red-600" />
                     </div>
-                  </div>
-                ))
-              )}
+                    Gửi cảnh báo khẩn cấp
+                  </button>
+                  
+                  <button 
+                    onClick={() => alert('Chức năng đang phát triển!')} 
+                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 px-4 rounded-xl flex items-center gap-3 border border-blue-100 transition-colors"
+                  >
+                    <MessageSquare size={20} /> Nhắn tin cho quản lý
+                  </button>
+                </div>
             </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => alert('Đã gửi tin nhắn khẩn cấp cho quản lý!')}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <AlertTriangle size={20} />
-                Gửi cảnh báo khẩn cấp
-              </button>
-              <button
-                onClick={() => alert('Đã thông báo hoàn thành chuyến đi!')}
-                className="w-full bg-green-50 hover:bg-green-100 text-green-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <CheckCircle size={20} />
-                Hoàn thành chuyến đi
-              </button>
-              <button
-                onClick={() => {
-                  const message = prompt('Gửi tin nhắn cho quản lý:');
-                  if (message) alert(`Đã gửi: "${message}"`);
-                }}
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <MessageSquare size={20} />
-                Nhắn tin cho quản lý
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
