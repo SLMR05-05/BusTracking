@@ -3,16 +3,17 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import http from "http";
 import { Server } from "socket.io";
-import userRoutes from "./routes/UserRoutes.js";
-import driverRoutes from "./routes/DriverRoutes.js";
-import studentRoutes from "./routes/StudentRoutes.js";
-import parentRoutes from "./routes/ParentRoutes.js";
-import busRoutes from "./routes/BusRoutes.js";
-import routeRoutes from "./routes/RouteRoutes.js";
-import scheduleRoutes from "./routes/ScheduleRoutes.js";
-import attendanceRoutes from "./routes/AttendanceRoutes.js";
-import notificationRoutes from "./routes/NotificationRoutes.js";
-import stopRoutes from "./routes/StopRoutes.js"; 
+import userRoutes from "./routes/admin/UserRoutes.js";
+import driverRoutes from "./routes/admin/DriverRoutes.js";
+import studentRoutes from "./routes/admin/StudentRoutes.js";
+import parentRoutes from "./routes/admin/ParentRoutes.js";
+import busRoutes from "./routes/admin/BusRoutes.js";
+import routeRoutes from "./routes/admin/RouteRoutes.js";
+import scheduleRoutes from "./routes/admin/ScheduleRoutes.js";
+import attendanceRoutes from "./routes/admin/AttendanceRoutes.js";
+import notificationRoutes from "./routes/admin/NotificationRoutes.js";
+import stopRoutes from "./routes/StopRoutes.js";
+import driverDashboardRoutes from "./routes/driver/DashBoardRoutes.js"; 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -37,6 +38,7 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stops", stopRoutes);
+app.use("/api/driver-dashboard", driverDashboardRoutes);
 // Socket.IO connections
 io.on("connection", (socket) => {
   console.log(" Client connected:", socket.id);

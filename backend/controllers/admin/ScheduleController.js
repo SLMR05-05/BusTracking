@@ -198,3 +198,13 @@ export const deleteScheduleDetails = (req, res) => {
     res.json({ message: "Xóa chi tiết lịch trình thành công" });
   });
 };
+
+// Lấy danh sách điểm danh theo lịch trình
+export const getAttendanceBySchedule = (req, res) => {
+  const scheduleId = req.params.id;
+  
+  AttendanceModel.getBySchedule(scheduleId, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};

@@ -44,7 +44,7 @@ export default function Login() {
           navigate('/dashboard');
           break;
         case 'TX':
-          navigate('/driver-dashboard');
+          navigate('/driver-schedule');
           break;
         case 'PH':
           navigate('/parent-dashboard');

@@ -32,13 +32,11 @@ export default function Sidebar() {
   ];
 
   const driverNav = [
-    { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/driver-dashboard' },
-    { key: 'tracking', label: 'Theo dõi xe', icon: Navigation, path: '/driver-tracking' },
-    { key: 'schedule', label: 'Lịch trình', icon: MapPin, path: '/driver-schedule' },
+    { key: 'schedule', label: 'Lịch chạy', icon: Calendar, path: '/driver-schedule' },
   ];
 
   const parentNav = [
-    { key: 'overview', label: 'Tổng quan', icon: BarChart3, path: '/parent-dashboard' },
+    { key: 'home', label: 'Trang chủ', icon: Navigation, path: '/parent-home' },
     { key: 'history', label: 'Lịch sử', icon: Clock, path: '/parent-history' },
   ];
 
@@ -66,19 +64,19 @@ export default function Sidebar() {
     <aside className="w-72 bg-white h-screen border-r fixed flex flex-col">
       {/* Header */}
       <div className="p-6 flex items-center gap-3 border-b">
-        <div className="text-2xl">🚌</div>
-        <div className="font-bold text-lg">BusManager</div>
+        <div className="text-2xl"></div>
+        <div className="font-bold text-lg"></div>
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b bg-gray-50">
+      <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-            {user?.name?.charAt(0) || 'U'}
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div>
-            <div className="font-medium text-gray-900">{user?.name}</div>
-            <div className="text-sm text-gray-500 capitalize">{user?.role}</div>
+            <div className="font-bold text-gray-900">{user?.name || 'User'}</div>
+            <div className="text-xs text-blue-600 font-medium capitalize">{user?.role || 'Role'}</div>
           </div>
         </div>
       </div>

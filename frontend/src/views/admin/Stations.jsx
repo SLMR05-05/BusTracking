@@ -1,75 +1,187 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import { Plus } from "lucide-react";
+import { Plus, MapPin, Edit, Trash2 } from "lucide-react";
+
+const API_URL = 'http://localhost:5000/api';
 
 export default function Station() {
-  // Mock data tuyến đường
-  const mockRoutes = [
-    { id: 1, routeId: "TD001", name: "Tuyến 1 - Quận 1 đến Quận 5" },
-    { id: 2, routeId: "TD002", name: "Tuyến 2 - Quận 9 đến Thủ Đức" },
-    { id: 3, routeId: "TD003", name: "Tuyến 3 - Tân Bình đến Bình Thạnh" },
-  ];
-
-  const [stations, setStations] = useState([
-    { id: 1, code: "TR001", name: "Trạm Nguyễn Văn Cừ", address: "Nguyễn Văn Cừ, Quận 5", lat: 10.762622, lng: 106.682223, routeId: "TD001", routeName: "Tuyến 1 - Quận 1 đến Quận 5" },
-    { id: 2, code: "TR002", name: "Trạm Lê Văn Việt", address: "Lê Văn Việt, Quận 9", lat: 10.845321, lng: 106.794222, routeId: "TD002", routeName: "Tuyến 2 - Quận 9 đến Thủ Đức" },
-    { id: 3, code: "TR003", name: "Trạm Nguyễn Thị Minh Khai", address: "Nguyễn Thị Minh Khai, Q1", lat: 10.776111, lng: 106.695833, routeId: "TD001", routeName: "Tuyến 1 - Quận 1 đến Quận 5" },
-  ]);
-
+  const [stations, setStations] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
+  
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
-    address: "",
-    lat: "",
-    lng: "",
-    routeId: "",
-    routeName: "",
+    MaTram: "",
+    TenTram: "",
+    DiaChi: "",
+    KinhDo: "",
+    ViDo: "",
+    MaTD: "",
+    ThuTu: ""
   });
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const [stationsRes, routesRes] = await Promise.all([
+        fetch(`${API_URL}/stops`, { headers }),
+        fetch(`${API_URL}/routes`, { headers })
+      ]);
+
+      let stationsData = [];
+      let routesData = [];
+
+      if (stationsRes.ok) {
+        stationsData = await stationsRes.json();
+      }
+
+      if (routesRes.ok) {
+        routesData = await routesRes.json();
+        setRoutes(routesData);
+      }
+
+      // Map route names to stations
+      const stationsWithRoutes = stationsData.map(station => {
+        const route = routesData.find(r => r.MaTD === station.MaTD);
+        return {
+          ...station,
+          TenTuyenDuong: route ? route.TenTuyenDuong : null
+        };
+      });
+
+      // Sort by ThuTu (order)
+      stationsWithRoutes.sort((a, b) => (a.ThuTu || 0) - (b.ThuTu || 0));
+
+      setStations(stationsWithRoutes);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      alert('Lỗi khi tải dữ liệu!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Lấy tên tuyến đường
-    const selectedRoute = mockRoutes.find(r => r.routeId === formData.routeId);
-    const dataToSave = {
-      ...formData,
-      routeName: selectedRoute?.name || ""
-    };
-    
-    if (editingStation) {
-      setStations(
-        stations.map((s) =>
-          s.id === editingStation.id ? { ...s, ...dataToSave } : s
-        )
-      );
-    } else {
-      const newStation = {
-        id: Math.max(...stations.map((s) => s.id)) + 1,
-        ...dataToSave,
+    try {
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       };
-      setStations([...stations, newStation]);
+
+      const dataToSend = {
+        TenTram: formData.TenTram,
+        DiaChi: formData.DiaChi,
+        KinhDo: formData.KinhDo,
+        ViDo: formData.ViDo,
+        MaTD: formData.MaTD,
+        ThuTu: parseInt(formData.ThuTu) || 1
+      };
+
+      if (editingStation) {
+        // Update
+        const response = await fetch(`${API_URL}/stops/${editingStation.MaTram}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(dataToSend)
+        });
+
+        if (response.ok) {
+          alert('Cập nhật trạm thành công!');
+          fetchData();
+        } else {
+          const error = await response.text();
+          alert('Lỗi: ' + error);
+        }
+      } else {
+        // Create
+        const response = await fetch(`${API_URL}/stops`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            MaTram: `TR${Date.now()}`,
+            ...dataToSend
+          })
+        });
+
+        if (response.ok) {
+          alert('Thêm trạm thành công!');
+          fetchData();
+        } else {
+          const error = await response.text();
+          alert('Lỗi: ' + error);
+        }
+      }
+
+      setShowModal(false);
+      setEditingStation(null);
+      setFormData({
+        MaTram: "",
+        TenTram: "",
+        DiaChi: "",
+        KinhDo: "",
+        ViDo: "",
+        MaTD: "",
+        ThuTu: ""
+      });
+    } catch (error) {
+      console.error('Error saving station:', error);
+      alert('Lỗi khi lưu trạm!');
     }
-    setShowModal(false);
-    setEditingStation(null);
-    setFormData({ code: "", name: "", address: "", lat: "", lng: "", routeId: "", routeName: "" });
   };
 
   const handleEdit = (station) => {
     setEditingStation(station);
-    setFormData(station);
+    setFormData({
+      MaTram: station.MaTram,
+      TenTram: station.TenTram,
+      DiaChi: station.DiaChi,
+      KinhDo: station.KinhDo,
+      ViDo: station.ViDo,
+      MaTD: station.MaTD,
+      ThuTu: station.ThuTu
+    });
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa trạm này?")) {
-      setStations(stations.filter((s) => s.id !== id));
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa trạm này?")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/stops/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert('Xóa trạm thành công!');
+        fetchData();
+      } else {
+        alert('Lỗi khi xóa trạm!');
+      }
+    } catch (error) {
+      console.error('Error deleting station:', error);
+      alert('Lỗi khi xóa trạm!');
     }
   };
 
   const handleMapClick = async (lat, lng) => {
-    setFormData((prev) => ({ ...prev, lat, lng }));
+    setFormData((prev) => ({ 
+      ...prev, 
+      ViDo: lat.toFixed(6), 
+      KinhDo: lng.toFixed(6) 
+    }));
 
     // Gọi Nominatim API để lấy địa chỉ từ toạ độ
     try {
@@ -78,12 +190,12 @@ export default function Station() {
       );
       const data = await res.json();
       if (data.display_name) {
-        setFormData((prev) => ({ ...prev, address: data.display_name }));
+        setFormData((prev) => ({ ...prev, DiaChi: data.display_name }));
       } else {
-        setFormData((prev) => ({ ...prev, address: "Không tìm thấy địa chỉ" }));
+        setFormData((prev) => ({ ...prev, DiaChi: "Không tìm thấy địa chỉ" }));
       }
     } catch (err) {
-      setFormData((prev) => ({ ...prev, address: "Lỗi khi lấy địa chỉ" }));
+      setFormData((prev) => ({ ...prev, DiaChi: "Lỗi khi lấy địa chỉ" }));
     }
   };
 
@@ -94,10 +206,21 @@ export default function Station() {
         handleMapClick(e.latlng.lat, e.latlng.lng);
       },
     });
-    return formData.lat && formData.lng ? (
-      <Marker position={[formData.lat, formData.lng]} />
+    return formData.ViDo && formData.KinhDo ? (
+      <Marker position={[parseFloat(formData.ViDo), parseFloat(formData.KinhDo)]} />
     ) : null;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -105,10 +228,22 @@ export default function Station() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Quản lý Trạm</h1>
-          <p className="text-gray-600 mt-1">Danh sách các trạm trong hệ thống</p>
+          <p className="text-gray-600 mt-1">Danh sách các trạm trong hệ thống ({stations.length} trạm)</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setEditingStation(null);
+            setFormData({
+              MaTram: "",
+              TenTram: "",
+              DiaChi: "",
+              KinhDo: "",
+              ViDo: "",
+              MaTD: "",
+              ThuTu: ""
+            });
+            setShowModal(true);
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <Plus size={20} />
@@ -125,43 +260,66 @@ export default function Station() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã trạm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên trạm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tuyến đường</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thứ tự</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa chỉ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tọa độ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {stations.map((station) => (
-                <tr key={station.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-bold text-gray-900">{station.code}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{station.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {station.routeName}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{station.address}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {station.lat.toFixed(6)}, {station.lng.toFixed(6)}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(station)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDelete(station.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Xóa
-                      </button>
-                    </div>
+              {stations.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    Chưa có trạm nào. Hãy thêm trạm mới!
                   </td>
                 </tr>
-              ))}
+              ) : (
+                stations.map((station) => (
+                  <tr key={station.MaTram} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-bold text-gray-900">{station.MaTram}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-blue-500" />
+                        {station.TenTram}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {station.TenTuyenDuong || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 font-bold">
+                        {station.ThuTu}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                      {station.DiaChi}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {parseFloat(station.ViDo).toFixed(4)}, {parseFloat(station.KinhDo).toFixed(4)}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(station)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                        >
+                          <Edit size={14} />
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDelete(station.MaTram)}
+                          className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                        >
+                          <Trash2 size={14} />
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -180,17 +338,17 @@ export default function Station() {
                   Tuyến đường <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={formData.routeId}
+                  value={formData.MaTD}
                   onChange={(e) =>
-                    setFormData({ ...formData, routeId: e.target.value })
+                    setFormData({ ...formData, MaTD: e.target.value })
                   }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="">-- Chọn tuyến đường --</option>
-                  {mockRoutes.map((route) => (
-                    <option key={route.id} value={route.routeId}>
-                      {route.name}
+                  {routes.map((route) => (
+                    <option key={route.MaTD} value={route.MaTD}>
+                      {route.TenTuyenDuong}
                     </option>
                   ))}
                 </select>
@@ -201,15 +359,36 @@ export default function Station() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tên trạm
+                  Thứ tự trạm <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.ThuTu}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ThuTu: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập thứ tự trạm (1, 2, 3...)"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Thứ tự trạm trên tuyến đường (trạm đầu tiên = 1)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên trạm <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
+                  value={formData.TenTram}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, TenTram: e.target.value })
                   }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập tên trạm"
                   required
                 />
               </div>
@@ -220,46 +399,75 @@ export default function Station() {
                 </label>
                 <input
                   type="text"
-                  value={formData.address}
-                  readOnly
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
-                  placeholder="Chọn vị trí trên bản đồ để tự động điền"
+                  value={formData.DiaChi}
+                  onChange={(e) =>
+                    setFormData({ ...formData, DiaChi: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="Chọn vị trí trên bản đồ để tự động điền hoặc nhập thủ công"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tọa độ
-                </label>
-                <input
-                  type="text"
-                  value={
-                    formData.lat && formData.lng
-                      ? `${formData.lat.toFixed(6)}, ${formData.lng.toFixed(6)}`
-                      : ""
-                  }
-                  readOnly
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
-                  placeholder="Chọn vị trí trên bản đồ để tự động điền"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vĩ độ (Latitude) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.ViDo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ViDo: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                    placeholder="10.762622"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kinh độ (Longitude) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.KinhDo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, KinhDo: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                    placeholder="106.682223"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Bản đồ chọn vị trí */}
-              <div className="h-64 w-full rounded-lg overflow-hidden">
-                <MapContainer
-                  center={[10.7769, 106.7009]}
-                  zoom={13}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='© OpenStreetMap contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <LocationPicker />
-                </MapContainer>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Chọn vị trí trên bản đồ
+                </label>
+                <div className="h-64 w-full rounded-lg overflow-hidden border">
+                  <MapContainer
+                    center={[
+                      formData.ViDo ? parseFloat(formData.ViDo) : 10.7769,
+                      formData.KinhDo ? parseFloat(formData.KinhDo) : 106.7009
+                    ]}
+                    zoom={13}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      attribution='© OpenStreetMap contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationPicker />
+                  </MapContainer>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Click vào bản đồ để chọn vị trí trạm
+                </p>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {

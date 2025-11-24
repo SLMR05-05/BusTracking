@@ -10,12 +10,22 @@ import {
   getBusLocation,
   getSummary
 } from "../../controllers/driver/DashBoardController.js";
-import { verifyToken } from "../../Middleware/authMiddleware.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Tất cả routes cần xác thực token
 router.use(verifyToken);
+
+// Test endpoint - kiểm tra token
+router.get("/test", (req, res) => {
+  res.json({
+    message: "Token hợp lệ",
+    userId: req.user.userId,
+    roleId: req.user.roleId,
+    role: req.user.role
+  });
+});
 
 // 1. Lấy thông tin tài xế hiện tại
 router.get("/info", getDriverInfo);

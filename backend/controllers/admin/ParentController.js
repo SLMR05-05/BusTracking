@@ -121,3 +121,48 @@ export const getParentChildren = (req, res) => {
     res.json(results);
   });
 };
+
+// Lấy thông tin phụ huynh hiện tại từ token
+export const getCurrentParent = (req, res) => {
+  console.log('[getCurrentParent] Called with user:', req.user);
+  const userId = req.user.MaTK;
+  
+  const sql = `
+    SELECT ph.*, tk.TenDangNhap
+    FROM phuhuynh ph
+    INNER JOIN taikhoan tk ON ph.MaTK = tk.MaTK
+    WHERE ph.MaTK = ? AND ph.TrangThaiXoa = '0'
+  `;
+  
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.log('[getCurrentParent] Error:', err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.length === 0) {
+      console.log('[getCurrentParent] No parent found for userId:', userId);
+      return res.status(404).json({ message: "Phụ huynh không tồn tại" });
+    }
+    console.log('[getCurrentParent] Success, found parent:', results[0].MaPH);
+    res.json(results[0]);
+  });
+};
+
+// Lấy danh sách con của phụ huynh hiện tại kèm thông tin trạm
+export const getCurrentParentStudents = (req, res) => {
+  const userId = req.user.MaTK;
+  
+  const sql = `
+    SELECT hs.*, t.TenTram, t.DiaChi as DiaChiTram, td.TenTuyenDuong
+    FROM hocsinh hs
+    INNER JOIN phuhuynh ph ON hs.MaPH = ph.MaPH
+    LEFT JOIN tram t ON hs.MaTram = t.MaTram
+    LEFT JOIN tuyenduong td ON t.MaTD = td.MaTD
+    WHERE ph.MaTK = ? AND hs.TrangThaiXoa = '0'
+  `;
+  
+  db.query(sql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};

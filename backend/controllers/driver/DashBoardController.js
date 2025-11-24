@@ -9,11 +9,16 @@ export const getDriverInfo = (req, res) => {
   // ✅ Sửa: req.user.userId (từ JWT)
   const maTK = req.user.userId;
 
+  console.log('🔍 [getDriverInfo] MaTK từ token:', maTK);
+
   DashboardModel.getDriverInfo(maTK, (err, results) => {
     if (err) {
+      console.error('❌ [getDriverInfo] Lỗi:', err);
       return res.status(500).json({ message: "Lỗi lấy thông tin tài xế", error: err });
     }
+    console.log('📋 [getDriverInfo] Kết quả:', results);
     if (results.length === 0) {
+      console.warn('⚠️ [getDriverInfo] Không tìm thấy tài xế với MaTK:', maTK);
       return res.status(404).json({ message: "Không tìm thấy tài xế" });
     }
     res.json(results[0]);
@@ -25,22 +30,35 @@ export const getSchedules = (req, res) => {
   const maTK = req.user.userId; // Lấy MaTK từ Token
   const { date } = req.query;
 
+  console.log('🔍 [getSchedules] MaTK từ token:', maTK);
+  console.log('🔍 [getSchedules] Date filter:', date);
+
   // B1: Tìm thông tin Tài xế từ MaTK
   DashboardModel.getDriverInfo(maTK, (err, driverInfo) => {
-    if (err) return res.status(500).json({ message: "Lỗi server", error: err });
+    if (err) {
+      console.error('❌ [getSchedules] Lỗi getDriverInfo:', err);
+      return res.status(500).json({ message: "Lỗi server", error: err });
+    }
+    
+    console.log('📋 [getSchedules] Driver info:', driverInfo);
     
     // Nếu tài khoản này không phải là tài xế
     if (!driverInfo || driverInfo.length === 0) {
+      console.warn('⚠️ [getSchedules] Không tìm thấy tài xế với MaTK:', maTK);
       return res.status(404).json({ message: "Không tìm thấy hồ sơ tài xế cho tài khoản này" });
     }
 
     const maTX = driverInfo[0].MaTX; // Lấy MaTX thực sự
+    console.log('✅ [getSchedules] MaTX:', maTX);
 
     // B2: Dùng MaTX để lấy lịch trình
     DashboardModel.getSchedulesByDriver(maTX, date || null, (scheduleErr, results) => {
       if (scheduleErr) {
+        console.error('❌ [getSchedules] Lỗi getSchedulesByDriver:', scheduleErr);
         return res.status(500).json({ message: "Lỗi lấy lịch chạy", error: scheduleErr });
       }
+      console.log('📅 [getSchedules] Số lịch tìm thấy:', results?.length || 0);
+      console.log('📅 [getSchedules] Dữ liệu:', results);
       res.json(results || []);
     });
   });

@@ -121,3 +121,21 @@ export const getParentChildren = (req, res) => {
     res.json(results);
   });
 };
+
+// Lấy thông tin phụ huynh hiện tại từ token
+export const getCurrentParent = (req, res) => {
+  const userId = req.user.MaTK;
+  
+  const sql = `
+    SELECT ph.*, tk.TenDangNhap
+    FROM phuhuynh ph
+    INNER JOIN taikhoan tk ON ph.MaTK = tk.MaTK
+    WHERE ph.MaTK = ? AND ph.TrangThaiXoa = '0'
+  `;
+  
+  db.query(sql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (results.length === 0) return res.status(404).json({ message: "Phụ huynh không tồn tại" });
+    res.json(results[0]);
+  });
+};

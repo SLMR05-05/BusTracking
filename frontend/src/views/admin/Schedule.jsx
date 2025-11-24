@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, Clock, Plus, Route, Trash2, MapPin, Eye, CheckCircle, Search, X, Map as MapIcon } from 'lucide-react';
+import { Calendar, Clock, Plus, Route, Trash2, MapPin, Eye, CheckCircle, Search, X, Map as MapIcon, Navigation as NavigationIcon } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,12 +10,20 @@ const formatDateDisplay = (dateStr) => {
   if (!dateStr) return '';
   
   try {
-    // dateStr is in YYYY-MM-DD format from database
-    const date = new Date(dateStr + 'T00:00:00');
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString('vi-VN');
+    // If it's ISO format with timezone (e.g., "2025-11-23T17:00:00.000Z")
+    // Parse as UTC and convert to local timezone
+    if (dateStr.includes('T')) {
+      const date = new Date(dateStr);
+      // Get local date components
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     }
-    return dateStr;
+    
+    // If it's just "YYYY-MM-DD", parse directly
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
   } catch (error) {
     return dateStr;
   }
@@ -138,6 +146,12 @@ const fetchAllData = async () => {
     })
   );
 
+  // Debug: Log raw date from API
+  if (schedulesWithDetails.length > 0) {
+    console.log('📅 [Schedule] Raw date from API:', schedulesWithDetails[0].NgayChay);
+    console.log('📅 [Schedule] Formatted date:', formatDateDisplay(schedulesWithDetails[0].NgayChay));
+  }
+
   // Cập nhật state với dữ liệu đã lấy
   setSchedules(schedulesWithDetails);
   setDrivers(driversData);
@@ -158,7 +172,15 @@ const fetchAttendance = async (scheduleId) => {
 
     if (res.ok) {
       const data = await res.json();
-      setAttendanceList(data); // Lưu dữ liệu điểm danh vào state
+      console.log('📋 [Attendance] Raw data:', data);
+      
+      // Sort by station order (ThuTu) if available
+      const sortedData = data.sort((a, b) => {
+        if (a.ThuTu && b.ThuTu) return a.ThuTu - b.ThuTu;
+        return 0;
+      });
+      
+      setAttendanceList(sortedData); // Lưu dữ liệu điểm danh vào state
     } else {
       console.error('Lỗi khi lấy điểm danh:', await res.text());
       setAttendanceList([]); // Nếu lỗi thì xóa dữ liệu
@@ -197,6 +219,53 @@ const handleRouteChange = async (routeId) => {
   }
 };
 
+// Xử lý thêm khoảng ngày
+const handleAddDateRange = () => {
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  
+  if (!from || !to) {
+    return alert('Vui lòng chọn cả ngày bắt đầu và kết thúc!');
+  }
+  
+  if (from > to) {
+    return alert('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!');
+  }
+  
+  // Xử lý ngày không dùng Date object để tránh lỗi timezone
+  const dates = [];
+  const [startYear, startMonth, startDay] = from.split('-').map(Number);
+  const [endYear, endMonth, endDay] = to.split('-').map(Number);
+  
+  // Tạo date string trực tiếp từ YYYY-MM-DD
+  let currentDate = new Date(startYear, startMonth - 1, startDay);
+  const endDate = new Date(endYear, endMonth - 1, endDay);
+  
+  while (currentDate <= endDate) {
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    if (!selectedDates.includes(dateStr)) {
+      dates.push(dateStr);
+    }
+    
+    // Tăng 1 ngày
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  setSelectedDates([...selectedDates, ...dates].sort());
+  
+  // Reset input
+  document.getElementById('fromDate').value = '';
+  document.getElementById('toDate').value = '';
+};
+
+// Xử lý xóa ngày
+const handleRemoveDate = (date) => {
+  setSelectedDates(selectedDates.filter(d => d !== date));
+};
 
 const handleSubmit = async (e) => {
   e.preventDefault(); // Ngăn form submit reload trang
@@ -581,24 +650,17 @@ const handleDeleteSelected = async () => {
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{schedule.MaLT}</td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="text-blue-500" size={16} />
-                      <span className="text-sm font-medium text-gray-900">
-                        {formatDateDisplay(schedule.NgayChay)}
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {formatDateDisplay(schedule.NgayChay)}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <Route className="text-green-500" size={16} />
-                      <span className="text-sm font-medium text-gray-900">{schedule.TenTuyenDuong}</span>
-                    </div>
+                    <span className="text-sm font-medium text-gray-900">{schedule.TenTuyenDuong}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1 text-sm text-gray-900">
-                      <Clock size={14} className="text-gray-400" />
+                    <span className="text-sm text-gray-900">
                       {formatTimeDisplay(schedule.GioBatDau)} - {formatTimeDisplay(schedule.GioKetThuc)}
-                    </div>
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     {isCompleted ? (
@@ -607,7 +669,7 @@ const handleDeleteSelected = async () => {
                       </span>
                     ) : isInProgress ? (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        <Navigation size={14} className="mr-1" /> Đang chạy ({completed}/{total})
+                        <NavigationIcon size={14} className="mr-1" /> Đang chạy ({completed}/{total})
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">

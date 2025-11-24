@@ -53,7 +53,10 @@ export default function Routes() {
       
       if (response.ok) {
         const data = await response.json();
-        setStations(data);
+        // Sort stations by ThuTu (order)
+        const sortedData = data.sort((a, b) => (a.ThuTu || 0) - (b.ThuTu || 0));
+        console.log('📍 [Routes] Stations for route', routeId, ':', sortedData);
+        setStations(sortedData);
       }
     } catch (error) {
       console.error('Error fetching stations:', error);
