@@ -74,7 +74,11 @@ CREATE TABLE thongbao (
   MaTB varchar(50) NOT NULL,
   MaLT varchar(50),
   MaPH varchar(50),
+  MaHS varchar(50),
   NoiDung varchar(255),
+  LoaiThongBao varchar(50),  -- 'attendance', 'stop_passed', 'alert'
+  ThoiGian DATETIME DEFAULT CURRENT_TIMESTAMP,
+  DaDoc VARCHAR(1) DEFAULT '0',  -- '0': chưa đọc, '1': đã đọc
   TrangThaiXoa varchar(1),
   PRIMARY KEY (MaTB)
 );
@@ -165,7 +169,8 @@ ALTER TABLE taixe
 
 ALTER TABLE thongbao
   ADD CONSTRAINT fk_thongbao_lichtrinh FOREIGN KEY (MaLT) REFERENCES lichtrinh(MaLT),
-  ADD CONSTRAINT fk_thongbao_phuhuynh FOREIGN KEY (MaPH) REFERENCES phuhuynh(MaPH);
+  ADD CONSTRAINT fk_thongbao_phuhuynh FOREIGN KEY (MaPH) REFERENCES phuhuynh(MaPH),
+  ADD CONSTRAINT fk_thongbao_hocsinh FOREIGN KEY (MaHS) REFERENCES hocsinh(MaHS);
 
 ALTER TABLE tram
   ADD CONSTRAINT fk_tram_tuyenduong FOREIGN KEY (MaTD) REFERENCES tuyenduong(MaTD);

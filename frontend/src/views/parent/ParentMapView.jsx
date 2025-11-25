@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import RouteMap from '../../components/RouteMap';
 
 const API_URL = 'http://localhost:5000/api';
+const SOCKET_URL = 'http://localhost:5000';
 
 export default function ParentMapView() {
   const { scheduleId } = useParams();
@@ -11,6 +13,42 @@ export default function ParentMapView() {
   const [schedule, setSchedule] = useState(null);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Socket.IO Realtime - Lắng nghe cập nhật trạng thái trạm
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+
+    socket.on('connect', () => {
+      console.log('🔌 Parent map connected to socket');
+      socket.emit('join-schedule-room', scheduleId);
+    });
+
+    // Lắng nghe cập nhật trạng thái trạm
+    socket.on('stop-status-update', (data) => {
+      console.log('📍 Nhận cập nhật trạm:', data);
+      if (data.scheduleId === scheduleId) {
+        // Cập nhật trạng thái trạm trong danh sách
+        setStops(prevStops => 
+          prevStops.map(stop => 
+            stop.detailId === data.detailId 
+              ? { ...stop, status: data.status === '1' ? 'completed' : 'pending' }
+              : stop
+          )
+        );
+      }
+    });
+
+    // Lắng nghe cập nhật điểm danh
+    socket.on('attendance-update', (data) => {
+      console.log('📝 Nhận cập nhật điểm danh:', data);
+      // Có thể refresh lại data nếu cần
+      fetchScheduleData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [scheduleId]);
 
   useEffect(() => {
     fetchScheduleData();

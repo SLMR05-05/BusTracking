@@ -339,9 +339,33 @@ export default function Station() {
                 </label>
                 <select
                   value={formData.MaTD}
-                  onChange={(e) =>
-                    setFormData({ ...formData, MaTD: e.target.value })
-                  }
+                  onChange={async (e) => {
+                    const selectedRoute = e.target.value;
+                    setFormData({ ...formData, MaTD: selectedRoute });
+                    
+                    // Tự động lấy số thứ tự tiếp theo khi chọn tuyến
+                    if (selectedRoute && !editingStation) {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await fetch(`${API_URL}/routes/${selectedRoute}/stops`, {
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
+                          const stops = await response.json();
+                          const maxThuTu = stops.length > 0 
+                            ? Math.max(...stops.map(s => s.ThuTu || 0))
+                            : 0;
+                          const nextThuTu = maxThuTu + 1;
+                          
+                          setFormData(prev => ({ ...prev, ThuTu: nextThuTu.toString() }));
+                        }
+                      } catch (error) {
+                        console.error('Error fetching stops:', error);
+                        setFormData(prev => ({ ...prev, ThuTu: '1' }));
+                      }
+                    }
+                  }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -353,7 +377,7 @@ export default function Station() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Trạm này sẽ thuộc về tuyến đường được chọn
+                  Trạm này sẽ thuộc về tuyến đường được chọn. Số thứ tự sẽ tự động được gán.
                 </p>
               </div>
 
@@ -368,12 +392,15 @@ export default function Station() {
                   onChange={(e) =>
                     setFormData({ ...formData, ThuTu: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập thứ tự trạm (1, 2, 3...)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  placeholder="Tự động gán khi chọn tuyến"
                   required
+                  readOnly={!editingStation}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Thứ tự trạm trên tuyến đường (trạm đầu tiên = 1)
+                  {editingStation 
+                    ? 'Có thể chỉnh sửa thứ tự trạm' 
+                    : 'Số thứ tự sẽ tự động được gán khi chọn tuyến đường'}
                 </p>
               </div>
 

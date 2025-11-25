@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
-import { ArrowLeft, MapPin, Clock, CheckCircle, XCircle, Circle } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CheckCircle, XCircle, Circle, Bell } from "lucide-react";
 import axios from "axios";
+import { io } from "socket.io-client";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -28,6 +29,39 @@ const ScheduleTracking = () => {
   const [attendances, setAttendances] = useState([]);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [realtimeAttendance, setRealtimeAttendance] = useState([]);
+
+  // Socket.IO Realtime
+  useEffect(() => {
+    const socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('🔌 Admin tracking connected');
+      socket.emit('join-admin-room');
+      socket.emit('join-schedule-room', scheduleId);
+    });
+    
+    socket.on('admin-update', (data) => {
+      if (data.type === 'attendance' && data.data.MaLT === scheduleId) {
+        console.log('📢 Nhận điểm danh realtime:', data.data);
+        setRealtimeAttendance(prev => [data.data, ...prev].slice(0, 20));
+        
+        // Cập nhật danh sách attendances
+        fetchScheduleData();
+      }
+    });
+
+    // Lắng nghe cập nhật trạng thái trạm
+    socket.on('stop-status-update', (data) => {
+      console.log('📍 Nhận cập nhật trạm:', data);
+      if (data.scheduleId === scheduleId) {
+        // Refresh data để cập nhật trạng thái trạm
+        fetchScheduleData();
+      }
+    });
+    
+    return () => socket.disconnect();
+  }, [scheduleId]);
 
   useEffect(() => {
     fetchScheduleData();
@@ -186,13 +220,33 @@ const ScheduleTracking = () => {
         </div>
 
         {/* Attendance List Section */}
-        <div className="w-96 bg-white border-l overflow-y-auto">
+        <div className="w-96 bg-white border-l overflow-y-auto flex flex-col">
           <div className="p-4 border-b bg-gray-50">
             <h2 className="font-semibold text-gray-800">Danh sách điểm danh</h2>
             <p className="text-sm text-gray-600 mt-1">
               {attendances.length} học sinh
             </p>
           </div>
+
+          {/* Realtime Notifications */}
+          {realtimeAttendance.length > 0 && (
+            <div className="p-4 bg-green-50 border-b">
+              <div className="flex items-center gap-2 mb-2">
+                <Bell className="text-green-600" size={16} />
+                <h3 className="font-semibold text-green-800 text-sm">Điểm danh mới</h3>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {realtimeAttendance.slice(0, 5).map((notif, index) => (
+                  <div key={index} className="text-xs bg-white p-2 rounded border-l-2 border-green-500">
+                    <p className="text-gray-800">{notif.NoiDung}</p>
+                    <p className="text-gray-500 mt-1">
+                      {new Date(notif.ThoiGian).toLocaleTimeString('vi-VN')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="divide-y">
             {stations.map((station, index) => {

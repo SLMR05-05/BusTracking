@@ -11,7 +11,8 @@ import {
   Route,
   LogOut,
   Calendar,
-  Clock
+  Clock,
+  Bell
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -37,6 +38,7 @@ export default function Sidebar() {
 
   const parentNav = [
     { key: 'dashboard', label: 'Trang chủ', icon: BarChart3, path: '/parent-dashboard' },
+    { key: 'notifications', label: 'Lịch sử thông báo', icon: Bell, path: '/parent-notifications' },
   ];
 
   const getNavItems = () => {

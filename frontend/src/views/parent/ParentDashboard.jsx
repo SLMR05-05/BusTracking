@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import NotificationPanel from '../../components/parent/NotificationPanel';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -123,9 +124,17 @@ export default function ParentDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="bg-white rounded-lg p-6 shadow border">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Phụ Huynh</h1>
-          <p className="text-gray-600 mt-1">Xin chào, {user?.name || 'Phụ huynh'}</p>
+        <div className="bg-white rounded-lg p-6 shadow border flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Phụ Huynh</h1>
+            <p className="text-gray-600 mt-1">Xin chào, {user?.name || 'Phụ huynh'}</p>
+          </div>
+          
+          {/* Notification Panel */}
+          <NotificationPanel 
+            parentId={user?.parentId} 
+            token={localStorage.getItem('token')}
+          />
         </div>
 
         {/* Danh sách học sinh */}

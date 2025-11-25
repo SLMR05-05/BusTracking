@@ -1,5 +1,6 @@
 import DashboardModel from "../../models/driver/DashBoardModel.js";
 import db from "../../config/db.js";
+import { createAttendanceNotification, createStopPassedNotification } from "../../services/notificationService.js";
 
 /**
  * DashboardController - xử lý logic cho Driver Dashboard
@@ -130,6 +131,17 @@ export const updateAttendance = (req, res) => {
     if (err) {
       return res.status(500).json({ message: "Lỗi cập nhật điểm danh", error: err });
     }
+
+    console.log(`📝 [updateAttendance] Điểm danh: scheduleId=${scheduleId}, studentId=${studentId}, status=${status}`);
+
+    // Tạo thông báo cho phụ huynh
+    createAttendanceNotification(scheduleId, studentId, status, (notifErr, notification) => {
+      if (notifErr) {
+        console.error('⚠️ Lỗi tạo thông báo:', notifErr);
+      } else {
+        console.log('✅ Đã tạo thông báo:', notification);
+      }
+    });
 
     // Tự động cập nhật trạng thái lịch trình
     const updateStatusSql = `

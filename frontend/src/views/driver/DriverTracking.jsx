@@ -151,11 +151,27 @@ export default function DriverTracking() {
     try {
       const stop = stops[currentStopIndex];
 
+      // Cập nhật trạng thái trạm
       await axios.put(
         `${API_BASE_URL}/schedules/details/${stop.detailId}/status`,
         { status: "1" },
         authHeader
       );
+
+      // Gửi thông báo cho phụ huynh khi xe qua trạm
+      try {
+        await axios.post(
+          `${API_BASE_URL.replace('/driver-dashboard', '/driver-notifications')}/stop-passed`,
+          {
+            scheduleId: currentSchedule.MaLT,
+            stopId: stop.id
+          },
+          authHeader
+        );
+        console.log('✅ Đã gửi thông báo qua trạm');
+      } catch (notifErr) {
+        console.error('⚠️ Lỗi gửi thông báo:', notifErr);
+      }
 
       setStops((p) => p.map((s, i) => (i === currentStopIndex ? { ...s, status: "completed" } : s)));
 

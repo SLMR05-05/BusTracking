@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Calendar, Clock, Plus, Route, Trash2, MapPin, Eye, CheckCircle, Search, X, Map as MapIcon, Navigation as NavigationIcon } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { io } from 'socket.io-client';
+import RouteMap from '../../components/RouteMap';
 
 const API_URL = 'http://localhost:5000/api';
+const SOCKET_URL = 'http://localhost:5000';
 
 // Helper function to format date for display (dd/mm/yyyy)
 const formatDateDisplay = (dateStr) => {
@@ -63,10 +64,9 @@ export default function Schedule() {
   const [attendanceList, setAttendanceList] = useState([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [activeTab, setActiveTab] = useState('stations');
+  const [mapStops, setMapStops] = useState([]);
   
-  // Map ref for detail modal with auto-refresh
-  const detailMapRef = useRef(null);
-  const detailMapInstanceRef = useRef(null);
+  // Map refresh interval
   const mapRefreshIntervalRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -404,139 +404,72 @@ const handleDeleteSelected = async () => {
 };
 
 
-  // Auto refresh map data every 5 seconds when map tab is active
+  // Socket.IO Realtime - Lắng nghe cập nhật trạng thái trạm
   useEffect(() => {
-    if (showDetailModal && selectedSchedule && activeTab === 'map') {
-      const fetchAndUpdateMap = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/schedules/${selectedSchedule.MaLT}/details`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (response.ok) {
-            const details = await response.json();
-            
-            // Update selected schedule with new details
-            setSelectedSchedule(prev => ({
-              ...prev,
-              details: details
-            }));
-            
-            // Also update in schedules list
-            setSchedules(prevSchedules => 
-              prevSchedules.map(s => 
-                s.MaLT === selectedSchedule.MaLT ? { ...s, details } : s
-              )
-            );
-          }
-        } catch (error) {
-          console.error('Error fetching schedule details:', error);
-        }
-      };
+    if (!showDetailModal || !selectedSchedule) return;
 
-      // Fetch immediately
-      fetchAndUpdateMap();
-      
-      // Set up interval to refresh every 5 seconds
-      mapRefreshIntervalRef.current = setInterval(fetchAndUpdateMap, 5000);
-      
-      return () => {
-        if (mapRefreshIntervalRef.current) {
-          clearInterval(mapRefreshIntervalRef.current);
-          mapRefreshIntervalRef.current = null;
-        }
-      };
-    }
-  }, [showDetailModal, selectedSchedule?.MaLT, activeTab]);
+    const socket = io(SOCKET_URL);
 
-  // Initialize map for detail modal
-  useEffect(() => {
-    // Create map when switching to map tab
-    if (showDetailModal && activeTab === 'map' && detailMapRef.current && !detailMapInstanceRef.current) {
-      const map = L.map(detailMapRef.current).setView([10.7626, 106.6818], 13);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+    socket.on('connect', () => {
+      console.log('🔌 Admin schedule connected to socket');
+      socket.emit('join-schedule-room', selectedSchedule.MaLT);
+    });
 
-      detailMapInstanceRef.current = map;
-    }
+    // Lắng nghe cập nhật trạng thái trạm
+    socket.on('stop-status-update', (data) => {
+      console.log('📍 Nhận cập nhật trạm:', data);
+      if (data.scheduleId === selectedSchedule.MaLT) {
+        // Cập nhật trạng thái trạm trong selectedSchedule
+        setSelectedSchedule(prev => ({
+          ...prev,
+          details: prev.details?.map(detail =>
+            detail.MaCTLT === data.detailId
+              ? { ...detail, TrangThaiQua: data.status }
+              : detail
+          )
+        }));
 
-    // Cleanup when modal closes or switching away from map tab
+        // Cập nhật trong schedules list
+        setSchedules(prevSchedules =>
+          prevSchedules.map(s =>
+            s.MaLT === selectedSchedule.MaLT
+              ? {
+                  ...s,
+                  details: s.details?.map(detail =>
+                    detail.MaCTLT === data.detailId
+                      ? { ...detail, TrangThaiQua: data.status }
+                      : detail
+                  )
+                }
+              : s
+          )
+        );
+      }
+    });
+
     return () => {
-      if (detailMapInstanceRef.current && (!showDetailModal || activeTab !== 'map')) {
-        detailMapInstanceRef.current.remove();
-        detailMapInstanceRef.current = null;
-      }
+      socket.disconnect();
     };
-  }, [showDetailModal, activeTab]);
+  }, [showDetailModal, selectedSchedule?.MaLT]);
 
-  // Update map markers and routes when data changes
+  // Prepare map stops data when tab changes to map
   useEffect(() => {
-    const map = detailMapInstanceRef.current;
-    if (!map || !selectedSchedule || activeTab !== 'map') return;
+    if (activeTab === 'map' && selectedSchedule) {
+      const processedStops = (selectedSchedule.details || []).map(stop => ({
+        id: stop.MaTram,
+        detailId: stop.MaCTLT,
+        name: stop.TenTram,
+        address: stop.DiaChi,
+        lat: parseFloat(stop.ViDo),
+        lng: parseFloat(stop.KinhDo),
+        order: stop.ThuTu,
+        status: stop.TrangThaiQua === '1' ? 'completed' : 'pending'
+      }));
 
-    // Clear existing markers and polylines
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
-        map.removeLayer(layer);
-      }
-    });
-
-    const stations = selectedSchedule.details || [];
-    if (stations.length === 0) return;
-
-    // Add station markers
-    stations.forEach((station) => {
-      const lat = parseFloat(station.ViDo);
-      const lng = parseFloat(station.KinhDo);
-      
-      const isPassed = station.TrangThaiQua === '1';
-      const markerColor = isPassed ? '#22c55e' : '#9ca3af';
-      
-      const stationIcon = L.divIcon({
-        className: 'custom-station-marker',
-        html: `<div style="background-color: ${markerColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px;">${station.ThuTu}</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      L.marker([lat, lng], { icon: stationIcon })
-        .bindPopup(`<b>${station.TenTram}</b><br>${station.DiaChi}<br><span style="color: ${isPassed ? '#22c55e' : '#9ca3af'};">${isPassed ? '✓ Đã qua' : '○ Chưa qua'}</span>`)
-        .addTo(map);
-    });
-
-    // Draw route if there are at least 2 stations
-    if (stations.length >= 2) {
-      // Draw straight lines between stations
-      for (let i = 0; i < stations.length - 1; i++) {
-        const currentStation = stations[i];
-        const nextStation = stations[i + 1];
-        const isPassed = currentStation.TrangThaiQua === '1';
-        const color = isPassed ? '#22c55e' : '#3b82f6';
-        
-        L.polyline([
-          [parseFloat(currentStation.ViDo), parseFloat(currentStation.KinhDo)],
-          [parseFloat(nextStation.ViDo), parseFloat(nextStation.KinhDo)]
-        ], { color: color, weight: 5, opacity: 0.8 }).addTo(map);
-      }
-      
-      // Fit bounds only on first load
-      const routeCoords = stations.map(s => [parseFloat(s.ViDo), parseFloat(s.KinhDo)]);
-      if (routeCoords.length > 0 && !map._boundsSet) {
-        map.fitBounds(routeCoords);
-        map._boundsSet = true;
-      }
-    } else if (stations.length === 1) {
-      // If only 1 station, just center the map on it
-      const station = stations[0];
-      if (!map._boundsSet) {
-        map.setView([parseFloat(station.ViDo), parseFloat(station.KinhDo)], 15);
-        map._boundsSet = true;
-      }
+      processedStops.sort((a, b) => a.order - b.order);
+      setMapStops(processedStops);
     }
-  }, [selectedSchedule, activeTab]);
+  }, [activeTab, selectedSchedule]);
 
 
 
@@ -726,7 +659,7 @@ const handleDeleteSelected = async () => {
               <button 
                 onClick={() => setActiveTab('map')}
                 className={`px-4 py-2 font-medium ${activeTab === 'map' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}>
-                Bản đồ {activeTab === 'map' && <span className="text-xs">( Tự động cập nhật mỗi 5s)</span>}
+                Bản đồ
               </button>
               <button 
                 onClick={() => { setActiveTab('attendance'); fetchAttendance(selectedSchedule.MaLT); }}
@@ -766,8 +699,72 @@ const handleDeleteSelected = async () => {
 
             {/* Tab Content - Map */}
             {activeTab === 'map' && (
-              <div className="rounded-lg overflow-hidden border-2 border-gray-300">
-                <div ref={detailMapRef} style={{ height: '500px', width: '100%' }}></div>
+              <div>
+                <div className="rounded-lg overflow-hidden border-2 border-gray-300">
+                  <div style={{ height: '600px', width: '100%' }}>
+                    <RouteMap 
+                      stops={mapStops}
+                      currentPosition={null}
+                    />
+                  </div>
+                </div>
+                
+                {/* Danh sách trạm bên dưới bản đồ */}
+                <div className="mt-6 bg-white rounded-lg border p-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách trạm</h3>
+                  <div className="space-y-3">
+                    {mapStops.map((stop, index) => {
+                      const isPassed = stop.status === 'completed';
+                      const isCurrent = index === mapStops.findIndex(s => s.status === 'pending');
+                      
+                      return (
+                        <div key={stop.id} className="relative pl-8">
+                          {index !== mapStops.length - 1 && (
+                            <div className={`absolute left-[11px] top-6 w-0.5 h-full ${
+                              isPassed ? 'bg-green-500' : 'bg-gray-300'
+                            }`}></div>
+                          )}
+                          
+                          <div className={`absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center z-10 bg-white border-2 ${
+                            isPassed ? 'border-green-500' : 
+                            isCurrent ? 'border-blue-500' : 
+                            'border-gray-300'
+                          }`}>
+                            {isPassed && (
+                              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            )}
+                            {isCurrent && (
+                              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <h4 className={`font-medium text-sm ${
+                                isCurrent ? 'text-blue-700' : 'text-gray-900'
+                              }`}>
+                                {stop.order}. {stop.name}
+                              </h4>
+                              {isCurrent && (
+                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                  Đang đến
+                                </span>
+                              )}
+                              {isPassed && (
+                                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  Đã qua
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {stop.address}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 

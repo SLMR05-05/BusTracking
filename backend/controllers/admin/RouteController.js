@@ -60,21 +60,50 @@ export const getRouteStops = (req, res) => {
 };
 
 export const addRouteStop = (req, res) => {
-  const stopData = {
-    MaTram: req.body.MaTram,
-    MaTD: req.params.id,
-    TenTram: req.body.TenTram,
-    DiaChi: req.body.DiaChi,
-    KinhDo: req.body.KinhDo,
-    ViDo: req.body.ViDo,
-    ThuTu: req.body.ThuTu || 0,
-    TrangThaiXoa: '0'
-  };
+  // Nếu không có ThuTu, tự động lấy số thứ tự tiếp theo
+  if (!req.body.ThuTu) {
+    RouteModel.getMaxThuTu(req.params.id, (err, maxResult) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      const nextThuTu = (maxResult && maxResult.maxThuTu) ? maxResult.maxThuTu + 1 : 1;
+      
+      const stopData = {
+        MaTram: req.body.MaTram,
+        MaTD: req.params.id,
+        TenTram: req.body.TenTram,
+        DiaChi: req.body.DiaChi,
+        KinhDo: req.body.KinhDo,
+        ViDo: req.body.ViDo,
+        ThuTu: nextThuTu,
+        TrangThaiXoa: '0'
+      };
 
-  RouteModel.addStop(stopData, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ message: "Thêm điểm dừng thành công", id: result.insertId });
-  });
+      RouteModel.addStop(stopData, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ 
+          message: "Thêm điểm dừng thành công", 
+          id: result.insertId,
+          ThuTu: nextThuTu
+        });
+      });
+    });
+  } else {
+    const stopData = {
+      MaTram: req.body.MaTram,
+      MaTD: req.params.id,
+      TenTram: req.body.TenTram,
+      DiaChi: req.body.DiaChi,
+      KinhDo: req.body.KinhDo,
+      ViDo: req.body.ViDo,
+      ThuTu: req.body.ThuTu,
+      TrangThaiXoa: '0'
+    };
+
+    RouteModel.addStop(stopData, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ message: "Thêm điểm dừng thành công", id: result.insertId });
+    });
+  }
 };
 
 export const updateRouteStop = (req, res) => {

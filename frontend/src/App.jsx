@@ -15,6 +15,7 @@ import DriverTracking from './views/driver/DriverTracking';
 import CommonMapView from './views/common/MapView';
 import ParentDashboard from './views/parent/ParentDashboard';
 import ParentMapView from './views/parent/ParentMapView';
+import ParentNotificationHistory from './views/parent/NotificationHistory';
 import Schedule from './views/admin/Schedule';
 import ScheduleTracking from './views/admin/ScheduleTracking';
 import PrivateRoute from './components/PrivateRoute';
@@ -175,6 +176,14 @@ function App() {
               element={
                 <PrivateRoute allowedRoles={['PH']}>
                   <ParentDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/parent-notifications"
+              element={
+                <PrivateRoute allowedRoles={['PH']}>
+                  <ParentNotificationHistory />
                 </PrivateRoute>
               }
             />
