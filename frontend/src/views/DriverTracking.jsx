@@ -82,7 +82,7 @@ export default function DriverTracking() {
               <span>Học sinh trên xe: {studentsOnBus}</span>
             </div>
             <div className="flex items-center gap-2 mt-2 text-gray-700">
-              <span>⏰</span>
+              <span></span>
               <span>Dự kiến đến: {eta}</span>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function DriverTracking() {
               className="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600"
               onClick={() => alert("Gửi cảnh báo khẩn cấp")}
             >
-              ⚠️ Gửi cảnh báo khẩn cấp
+               Gửi cảnh báo khẩn cấp
             </button>
             <button
               type="button"

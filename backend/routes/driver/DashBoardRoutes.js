@@ -8,7 +8,9 @@ import {
   getAttendance,
   updateAttendance,
   getBusLocation,
-  getSummary
+  getSummary,
+  checkSchedulePermission,
+  getProgress
 } from "../../controllers/driver/DashBoardController.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
@@ -55,5 +57,11 @@ router.get("/bus/:busId/location", getBusLocation);
 
 // 9. Lấy tóm tắt dashboard
 router.get("/schedules/:scheduleId/summary", getSummary);
+
+// 10. Kiểm tra quyền chạy lịch trình
+router.get("/schedules/:scheduleId/permission", checkSchedulePermission);
+
+// 11. Lấy tiến độ lịch trình
+router.get("/schedules/:scheduleId/progress", getProgress);
 
 export default router;

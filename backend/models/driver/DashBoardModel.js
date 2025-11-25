@@ -16,7 +16,10 @@ const DashboardModel = {
 
   // 2. Lấy lịch chạy (lichtrinh) của tài xế theo ngày (dateStr dạng 'YYYY-MM-DD' hoặc null -> lấy tất cả)
   getSchedulesByDriver: (driverId, dateStr, callback) => {
-    let sql = `SELECT l.*, x.BienSo, td.TenTuyenDuong
+    let sql = `SELECT l.MaLT, l.MaXB, l.MaTD, l.MaTX, 
+               DATE_FORMAT(l.NgayChay, '%Y-%m-%d') as NgayChay,
+               l.GioBatDau, l.GioKetThuc, l.TrangThai, l.TrangThaiXoa,
+               x.BienSo, td.TenTuyenDuong
                FROM lichtrinh l
                LEFT JOIN xebuyt x ON l.MaXB = x.MaXB
                LEFT JOIN tuyenduong td ON l.MaTD = td.MaTD
@@ -24,18 +27,21 @@ const DashboardModel = {
     const params = [driverId];
 
     if (dateStr) {
-      // Lưu ý: NgayChay trong schema là varchar, truyền đúng định dạng
-      sql += ` AND l.NgayChay = ?`;
+      sql += ` AND DATE(l.NgayChay) = ?`;
       params.push(dateStr);
     }
 
-    sql += ` ORDER BY l.GioBatDau ASC`;
+    // Sắp xếp: Ngày gần nhất trước, trong cùng ngày thì giờ sớm nhất trước
+    sql += ` ORDER BY l.NgayChay DESC, l.GioBatDau ASC`;
     db.query(sql, params, callback);
   },
 
   // 3. Lấy chi tiết 1 lịch (lichtrinh) kèm thông tin tuyến, xe, tài xế
   getScheduleDetails: (scheduleId, callback) => {
-    const sql = `SELECT l.*, x.BienSo, td.TenTuyenDuong, tx.TenTX
+    const sql = `SELECT l.MaLT, l.MaXB, l.MaTD, l.MaTX,
+                 DATE_FORMAT(l.NgayChay, '%Y-%m-%d') as NgayChay,
+                 l.GioBatDau, l.GioKetThuc, l.TrangThai, l.TrangThaiXoa,
+                 x.BienSo, td.TenTuyenDuong, tx.TenTX
                  FROM lichtrinh l
                  LEFT JOIN xebuyt x ON l.MaXB = x.MaXB
                  LEFT JOIN tuyenduong td ON l.MaTD = td.MaTD

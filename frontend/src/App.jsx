@@ -14,10 +14,7 @@ import DriverDashboard from './views/driver/DriverDashboard';
 import DriverTracking from './views/driver/DriverTracking';
 import CommonMapView from './views/common/MapView';
 import ParentDashboard from './views/parent/ParentDashboard';
-import ParentHistory from './views/parent/ParentHistory';
-import ParentTracking from './views/parent/ParentTracking';
-import ParentHome from './views/parent/ParentHome';
-import ParentLiveTracking from './views/parent/ParentLiveTracking';
+import ParentMapView from './views/parent/ParentMapView';
 import Schedule from './views/admin/Schedule';
 import ScheduleTracking from './views/admin/ScheduleTracking';
 import PrivateRoute from './components/PrivateRoute';
@@ -182,44 +179,10 @@ function App() {
               }
             />
             <Route
-              path="/parent-tracking"
+              path="/parent-map/:scheduleId"
               element={
                 <PrivateRoute allowedRoles={['PH']}>
-                  <ParentTracking />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/parent-history"
-              element={
-                <PrivateRoute allowedRoles={['PH']}>
-                  <ParentHistory />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/parent"
-              element={
-                <PrivateRoute allowedRoles={['PH']}>
-                  <ParentTracking />
-                </PrivateRoute>
-              }
-            />
-            
-            {/* New Parent Routes */}
-            <Route
-              path="/parent-home"
-              element={
-                <PrivateRoute allowedRoles={['PH']}>
-                  <ParentHome />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/parent-live-tracking"
-              element={
-                <PrivateRoute allowedRoles={['PH']}>
-                  <ParentLiveTracking />
+                  <ParentMapView />
                 </PrivateRoute>
               }
             />

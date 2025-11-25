@@ -1,3 +1,6 @@
+// Cấu hình timezone cho Node.js
+process.env.TZ = 'Asia/Ho_Chi_Minh';
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";

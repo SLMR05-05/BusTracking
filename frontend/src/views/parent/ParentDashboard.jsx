@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Navigation, User, Bus, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
@@ -9,93 +8,100 @@ const API_URL = 'http://localhost:5000/api';
 export default function ParentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [myChildren, setMyChildren] = useState([]);
+  const [students, setStudents] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchParentData();
-  }, [user]);
+    fetchData();
+  }, []);
 
-  const fetchParentData = async () => {
+  const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('[ParentDashboard] Token:', token ? 'exists' : 'missing');
+      
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Lấy thông tin phụ huynh
-      const parentRes = await axios.get(`${API_URL}/parents/me`, config);
-      const parentId = parentRes.data.MaPH;
+      // Lấy danh sách học sinh
+      console.log('[ParentDashboard] Fetching students...');
+      const studentsRes = await axios.get(`${API_URL}/parents/me/students`, config);
+      console.log('[ParentDashboard] Students:', studentsRes.data);
+      setStudents(studentsRes.data);
 
-      // Lấy danh sách con
-      const childrenRes = await axios.get(`${API_URL}/parents/me/students`, config);
-      setMyChildren(childrenRes.data);
-
-      // Lấy lịch trình hôm nay
-      const today = new Date().toISOString().split('T')[0];
+      // Lấy lịch trình hôm nay (sử dụng Local date để tránh lệch do timezone UTC)
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      console.log('[ParentDashboard] Fetching schedules for date:', today);
       const schedulesRes = await axios.get(`${API_URL}/schedules/by-date?date=${today}`, config);
+      console.log('[ParentDashboard] All schedules:', schedulesRes.data);
       
-      // Lọc lịch trình liên quan đến con
+      // Lọc lịch trình liên quan đến học sinh
       const relevantSchedules = schedulesRes.data.filter(schedule => {
-        return childrenRes.data.some(child => {
-          // Kiểm tra xem trạm của con có trong lịch trình không
-          return schedule.MaTD === child.MaTD;
+        return studentsRes.data.some(student => {
+          const match = schedule.MaTD === student.MaTD;
+          console.log(`[ParentDashboard] Comparing schedule ${schedule.MaTD} with student ${student.MaTD}: ${match}`);
+          return match;
         });
       });
       
+      console.log('[ParentDashboard] Relevant schedules:', relevantSchedules);
       setSchedules(relevantSchedules);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching parent data:', error);
+      console.error('[ParentDashboard] Error fetching data:', error);
+      console.error('[ParentDashboard] Error response:', error.response?.data);
+      console.error('[ParentDashboard] Error status:', error.response?.status);
       setLoading(false);
     }
   };
 
-
-
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    // Xử lý cả format HH:MM:SS và HH:MM
     const timePart = timeString.split('T')[1] || timeString;
     return timePart.substring(0, 5);
   };
 
+  const parseDateString = (dateString) => {
+    if (!dateString) return null;
+    // If ISO date or ISO datetime
+    if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(dateString)) {
+      return new Date(dateString);
+    }
+    // If dd-mm-yyyy
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+      const [dd, mm, yyyy] = dateString.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    }
+    // Fallback
+    const parsed = new Date(dateString);
+    return isNaN(parsed) ? null : parsed;
+  };
+
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  };
-
-  const formatDateFull = () => {
-    const date = new Date();
-    const days = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
-    const dayName = days[date.getDay()];
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${dayName}, ${day}/${month}/${year}`;
+    const date = parseDateString(dateString);
+    if (!date) return '';
+    return date.toLocaleDateString('vi-VN');
   };
 
   const getScheduleStatus = (schedule) => {
     const now = new Date();
-    const scheduleDate = new Date(schedule.NgayChay);
-    const today = new Date().toISOString().split('T')[0];
-    const scheduleDay = schedule.NgayChay?.split('T')[0];
+    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const scheduleDay = (() => {
+      if (!schedule?.NgayChay) return null;
+      const iso = /^\d{4}-\d{2}-\d{2}/.test(schedule.NgayChay) ? schedule.NgayChay.split('T')[0] : null;
+      if (iso) return iso;
+      if (/^\d{2}-\d{2}-\d{4}$/.test(schedule.NgayChay)) {
+        const [dd, mm, yyyy] = schedule.NgayChay.split('-');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      // fallback parse
+      const d = new Date(schedule.NgayChay);
+      if (isNaN(d)) return null;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
     
-    if (scheduleDay !== today) return { text: 'Không hoạt động', color: 'gray' };
+    if (scheduleDay !== todayLocal) return { text: 'Không hoạt động', color: 'gray' };
     if (schedule.TrangThai === 'completed') return { text: 'Đã hoàn thành', color: 'green' };
     if (schedule.TrangThai === 'running') return { text: 'Đang chạy', color: 'blue' };
     return { text: 'Chưa bắt đầu', color: 'orange' };
@@ -113,169 +119,132 @@ export default function ParentDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-800 text-white rounded-xl p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Chào {user?.name || 'Phụ huynh'}!</h1>
-            <p className="text-green-100 mt-1">Theo dõi hành trình đưa đón con em - {formatDateFull()}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">{myChildren.length}</div>
-            <div className="text-green-100">Con em</div>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="bg-white rounded-lg p-6 shadow border">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard Phụ Huynh</h1>
+          <p className="text-gray-600 mt-1">Xin chào, {user?.name || 'Phụ huynh'}</p>
         </div>
-      </div>
 
-
-
-      {/* Children Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {myChildren.length === 0 ? (
-          <div className="col-span-2 text-center py-12 bg-white rounded-xl shadow-sm border">
-            <User size={48} className="mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Chưa có thông tin học sinh</p>
+        {/* Danh sách học sinh */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="p-6 border-b bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">Danh sách con em</h2>
           </div>
-        ) : (
-          myChildren.map((child) => (
-            <div key={child.MaHS} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                  {child.TenHS?.charAt(0) || 'H'}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">{child.TenHS}</h3>
-                  <p className="text-gray-600">{child.Lop}</p>
-                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                    <MapPin size={14} />
-                    {child.TenTram || 'Chưa có trạm'}
-                  </p>
-                </div>
+          <div className="p-6">
+            {students.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Chưa có thông tin học sinh</p>
               </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Schedules Today */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Calendar size={20} />
-            Lịch trình hôm nay
-          </h2>
-        </div>
-        <div className="p-4">
-          {schedules.length === 0 ? (
-            <div className="text-center py-12">
-              <Bus size={48} className="mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600">Không có lịch trình nào hôm nay</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {schedules.map((schedule) => {
-                const status = getScheduleStatus(schedule);
-                return (
-                  <div
-                    key={schedule.MaLT}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-3">
+            ) : (
+              <div className="space-y-4">
+                {students.map((student) => (
+                  <div key={student.MaHS} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                          <Bus size={18} />
-                          {schedule.TenTuyenDuong}
-                        </h3>
+                        <h3 className="text-lg font-bold text-gray-900">{student.TenHS}</h3>
                         <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <p className="flex items-center gap-2">
-                            <span className="font-medium">🚌 Xe:</span>
-                            {schedule.BienSo}
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <span className="font-medium">👤 Tài xế:</span>
-                            {schedule.TenTX}
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <Clock size={14} />
-                            <span className="font-medium">{formatTime(schedule.GioBatDau)}</span>
-                            <span className="text-gray-400">→</span>
-                            <span className="font-medium">{formatTime(schedule.GioKetThuc)}</span>
-                          </p>
-                          {schedule.NgayChay && (
-                            <p className="flex items-center gap-2">
-                              <Calendar size={14} />
-                              {formatDate(schedule.NgayChay)}
-                            </p>
+                          <div>
+                            <span className="font-medium">Lớp:</span>
+                            <span className="ml-2">{student.Lop}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Trạm:</span>
+                            <span className="ml-2">{student.TenTram || 'Chưa có'}</span>
+                          </div>
+                          {student.TenTuyenDuong && (
+                            <div>
+                              <span className="font-medium">Tuyến đường:</span>
+                              <span className="ml-2">{student.TenTuyenDuong}</span>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          status.color === 'green'
-                            ? 'bg-green-100 text-green-700'
-                            : status.color === 'blue'
-                            ? 'bg-blue-100 text-blue-700'
-                            : status.color === 'orange'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {status.text}
-                      </span>
                     </div>
-                    <button
-                      onClick={() => navigate(`/parent-tracking?scheduleId=${schedule.MaLT}`)}
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-                    >
-                      <MapPin size={16} />
-                      Theo dõi trên bản đồ
-                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Attendance Status */}
-      {myChildren.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-4 border-b bg-gray-50">
-            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-              <CheckCircle size={20} />
-              Trạng thái điểm danh hôm nay
-            </h2>
+        {/* Lịch trình hôm nay */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="p-6 border-b bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">Lịch trình hôm nay</h2>
+            <p className="text-sm text-gray-600 mt-1">Các chuyến xe đưa đón</p>
           </div>
-          <div className="p-4">
-            <div className="space-y-3">
-              {myChildren.map((child) => (
-                <div
-                  key={child.MaHS}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow">
-                      {child.TenHS?.charAt(0) || 'H'}
+          <div className="p-6">
+            {schedules.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Không có lịch trình nào hôm nay</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {schedules.map((schedule) => {
+                  const status = getScheduleStatus(schedule);
+                  return (
+                    <div key={schedule.MaLT} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-base font-bold text-gray-900 mb-3">
+                            {schedule.TenTuyenDuong}
+                          </h3>
+                          
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div>
+                              <span className="font-medium">Xe:</span>
+                              <span className="ml-2">{schedule.BienSo}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Tài xế:</span>
+                              <span className="ml-2">{schedule.TenTX}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Thời gian:</span>
+                              <span className="ml-2">
+                                {formatTime(schedule.GioBatDau)} - {formatTime(schedule.GioKetThuc)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Ngày:</span>
+                              <span className="ml-2">{formatDate(schedule.NgayChay)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <span
+                          className={`px-3 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                            status.color === 'green'
+                              ? 'bg-green-100 text-green-700'
+                              : status.color === 'blue'
+                              ? 'bg-blue-100 text-blue-700'
+                              : status.color === 'orange'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {status.text}
+                        </span>
+                      </div>
+                      
+                      <button
+                        onClick={() => navigate(`/parent-map/${schedule.MaLT}`)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        Xem bản đồ lộ trình
+                      </button>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800">{child.TenHS}</p>
-                      <p className="text-sm text-gray-600">{child.Lop}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
-                      <XCircle size={14} />
-                      Chưa có dữ liệu
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+      </div>
     </div>
   );
 }

@@ -36,8 +36,7 @@ export default function Sidebar() {
   ];
 
   const parentNav = [
-    { key: 'home', label: 'Trang chủ', icon: Navigation, path: '/parent-home' },
-    { key: 'history', label: 'Lịch sử', icon: Clock, path: '/parent-history' },
+    { key: 'dashboard', label: 'Trang chủ', icon: BarChart3, path: '/parent-dashboard' },
   ];
 
   const getNavItems = () => {

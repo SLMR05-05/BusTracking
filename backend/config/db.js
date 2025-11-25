@@ -5,6 +5,7 @@ const db = mysql.createConnection({
   user: "root",
   password: "",
   database: "quanlyxebuyt",
+  timezone: "+07:00"  // Cấu hình timezone Việt Nam (UTC+7)
 });
 
 db.connect(err => {

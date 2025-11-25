@@ -1,4 +1,5 @@
 import DashboardModel from "../../models/driver/DashBoardModel.js";
+import db from "../../config/db.js";
 
 /**
  * DashboardController - xử lý logic cho Driver Dashboard
@@ -118,16 +119,49 @@ export const getAttendance = (req, res) => {
 // 7. Cập nhật trạng thái điểm danh học sinh
 export const updateAttendance = (req, res) => {
   const { scheduleId, studentId } = req.params;
-  const { status } = req.body; // status: '0' (chưa đón), '1' (đã đón), '2' (đã trả)
+  const { status } = req.body; // status: '0' (chưa hoàn thành), '2' (hoàn thành)
 
-  if (!status) {
-    return res.status(400).json({ message: "Thiếu thông tin trạng thái" });
+  // Chỉ cho phép 2 trạng thái
+  if (!status || !['0', '2'].includes(status)) {
+    return res.status(400).json({ message: "Trạng thái không hợp lệ. Chỉ chấp nhận '0' hoặc '2'" });
   }
 
   DashboardModel.upsertAttendance(scheduleId, studentId, status, (err, results) => {
     if (err) {
       return res.status(500).json({ message: "Lỗi cập nhật điểm danh", error: err });
     }
+
+    // Tự động cập nhật trạng thái lịch trình
+    const updateStatusSql = `
+      UPDATE lichtrinh lt
+      SET TrangThai = (
+        CASE 
+          WHEN (
+            SELECT COUNT(*) 
+            FROM diemdanh dd 
+            WHERE dd.MaLT = lt.MaLT AND dd.TrangThaiXoa = '0' AND dd.TrangThai = '2'
+          ) = (
+            SELECT COUNT(*) 
+            FROM diemdanh dd 
+            WHERE dd.MaLT = lt.MaLT AND dd.TrangThaiXoa = '0'
+          ) AND (
+            SELECT COUNT(*) 
+            FROM diemdanh dd 
+            WHERE dd.MaLT = lt.MaLT AND dd.TrangThaiXoa = '0'
+          ) > 0
+          THEN 'completed'
+          ELSE 'pending'
+        END
+      )
+      WHERE lt.MaLT = ?
+    `;
+    
+    db.query(updateStatusSql, [scheduleId], (updateErr) => {
+      if (updateErr) {
+        console.error('⚠️ Lỗi cập nhật trạng thái lịch trình:', updateErr);
+      }
+    });
+
     res.json({ message: "Cập nhật điểm danh thành công", data: results });
   });
 };
@@ -154,6 +188,78 @@ export const getSummary = (req, res) => {
   DashboardModel.getScheduleSummary(scheduleId, (err, results) => {
     if (err) {
       return res.status(500).json({ message: "Lỗi lấy tóm tắt", error: err });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy dữ liệu" });
+    }
+    res.json(results[0]);
+  });
+};
+
+// 10. Kiểm tra quyền chạy lịch trình
+export const checkSchedulePermission = (req, res) => {
+  const { scheduleId } = req.params;
+
+  // Không kiểm tra ngày - tài xế có thể chạy bất kỳ lúc nào
+  const sql = `
+    SELECT 
+      DATE_FORMAT(lt.NgayChay, '%Y-%m-%d') as NgayChay,
+      lt.TrangThai,
+      COUNT(CASE WHEN dd.TrangThai = '2' THEN 1 END) as completedAttendance
+    FROM lichtrinh lt
+    LEFT JOIN diemdanh dd ON lt.MaLT = dd.MaLT AND dd.TrangThaiXoa = '0'
+    WHERE lt.MaLT = ? AND lt.TrangThaiXoa = '0'
+    GROUP BY lt.MaLT
+  `;
+
+  db.query(sql, [scheduleId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Lỗi kiểm tra quyền", error: err });
+    }
+    if (results.length === 0) {
+      return res.json({ canRun: false, reason: 'Lịch trình không tồn tại' });
+    }
+
+    const schedule = results[0];
+    const hasStarted = schedule.completedAttendance > 0;
+    
+    // Luôn cho phép chạy
+    const canRun = true;
+
+    console.log('🔍 [checkSchedulePermission] Schedule Date:', schedule.NgayChay);
+    console.log('🔍 [checkSchedulePermission] Has Started:', hasStarted);
+    console.log('🔍 [checkSchedulePermission] Can Run:', canRun);
+
+    res.json({
+      canRun,
+      reason: null,
+      hasStarted,
+      status: schedule.TrangThai,
+      scheduleDate: schedule.NgayChay
+    });
+  });
+};
+
+// 11. Lấy tiến độ lịch trình
+export const getProgress = (req, res) => {
+  const { scheduleId } = req.params;
+
+  const sql = `
+    SELECT 
+      COUNT(DISTINCT ctlt.MaCTLT) as totalStops,
+      SUM(CASE WHEN ctlt.TrangThaiQua = '1' THEN 1 ELSE 0 END) as completedStops,
+      COUNT(DISTINCT dd.MaDD) as totalStudents,
+      SUM(CASE WHEN dd.TrangThai = '2' THEN 1 ELSE 0 END) as completedStudents
+    FROM lichtrinh lt
+    LEFT JOIN chitietlichtrinh ctlt ON lt.MaLT = ctlt.MaLT AND ctlt.TrangThaiXoa = '0'
+    LEFT JOIN diemdanh dd ON lt.MaLT = dd.MaLT AND dd.TrangThaiXoa = '0'
+    WHERE lt.MaLT = ? AND lt.TrangThaiXoa = '0'
+    GROUP BY lt.MaLT
+  `;
+
+  db.query(sql, [scheduleId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Lỗi lấy tiến độ", error: err });
     }
     if (results.length === 0) {
       return res.status(404).json({ message: "Không tìm thấy dữ liệu" });

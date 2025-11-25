@@ -146,16 +146,7 @@ export default function DriverSchedule() {
                 
                 {/* Action Buttons */}
                 <div className="p-3 bg-gray-50 flex gap-2 justify-end">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/driver-map/${schedule.id}`);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all text-xs font-medium"
-                  >
-                    <MapPin size={14} />
-                    Bản đồ
-                  </button>
+                  
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
