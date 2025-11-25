@@ -1,0 +1,32 @@
+{
+  "name": "bus-management-tests",
+  "version": "1.0.0",
+  "description": "Test suite for Bus Management System",
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:api": "jest --testPathPattern=api --runInBand",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:e2e": "playwright test",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "mysql2": "^3.6.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "./coverage",
+    "collectCoverageFrom": [
+      "../backend/**/*.js",
+      "!../backend/node_modules/**"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  }
+}

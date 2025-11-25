@@ -148,8 +148,8 @@ const fetchAllData = async () => {
 
   // Debug: Log raw date from API
   if (schedulesWithDetails.length > 0) {
-    console.log('📅 [Schedule] Raw date from API:', schedulesWithDetails[0].NgayChay);
-    console.log('📅 [Schedule] Formatted date:', formatDateDisplay(schedulesWithDetails[0].NgayChay));
+    console.log(' [Schedule] Raw date from API:', schedulesWithDetails[0].NgayChay);
+    console.log(' [Schedule] Formatted date:', formatDateDisplay(schedulesWithDetails[0].NgayChay));
   }
 
   // Cập nhật state với dữ liệu đã lấy
@@ -172,7 +172,7 @@ const fetchAttendance = async (scheduleId) => {
 
     if (res.ok) {
       const data = await res.json();
-      console.log('📋 [Attendance] Raw data:', data);
+      console.log(' [Attendance] Raw data:', data);
       
       // Sort by station order (ThuTu) if available
       const sortedData = data.sort((a, b) => {
@@ -411,13 +411,13 @@ const handleDeleteSelected = async () => {
     const socket = io(SOCKET_URL);
 
     socket.on('connect', () => {
-      console.log('🔌 Admin schedule connected to socket');
+      console.log(' Admin schedule connected to socket');
       socket.emit('join-schedule-room', selectedSchedule.MaLT);
     });
 
     // Lắng nghe cập nhật trạng thái trạm
     socket.on('stop-status-update', (data) => {
-      console.log('📍 Nhận cập nhật trạm:', data);
+      console.log(' Nhận cập nhật trạm:', data);
       if (data.scheduleId === selectedSchedule.MaLT) {
         // Cập nhật trạng thái trạm trong selectedSchedule
         setSelectedSchedule(prev => ({
