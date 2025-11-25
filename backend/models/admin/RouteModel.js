@@ -57,6 +57,19 @@ const RouteModel = {
   deleteStop: (stopId, callback) => {
     const sql = "UPDATE tram SET TrangThaiXoa = '1' WHERE MaTram = ?";
     db.query(sql, [stopId], callback);
+  },
+
+  // Lấy số thứ tự lớn nhất của tuyến đường
+  getMaxThuTu: (routeId, callback) => {
+    const sql = `
+      SELECT MAX(ThuTu) as maxThuTu 
+      FROM tram 
+      WHERE MaTD = ? AND TrangThaiXoa = '0'
+    `;
+    db.query(sql, [routeId], (err, results) => {
+      if (err) return callback(err);
+      callback(null, results[0]);
+    });
   }
 };
 

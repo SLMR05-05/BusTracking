@@ -20,7 +20,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
       case 'AD':
         return <Navigate to="/dashboard" replace />;
       case 'TX':
-        return <Navigate to="/driver-dashboard" replace />;
+        return <Navigate to="/driver-schedule" replace />;
       case 'PH':
         return <Navigate to="/parent-dashboard" replace />;
       default:

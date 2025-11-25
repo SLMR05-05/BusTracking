@@ -31,6 +31,16 @@ const UserModel = {
   getLatestId: (callback) => {
     const sql = `SELECT MaTK FROM taikhoan ORDER BY MaTK DESC LIMIT 1`;
     db.query(sql, callback);
+  },
+
+  getParentInfo: (userId, callback) => {
+    const sql = `SELECT MaPH, TenPH FROM phuhuynh WHERE MaTK = ? AND TrangThaiXoa = '0'`;
+    db.query(sql, [userId], callback);
+  },
+
+  getDriverInfo: (userId, callback) => {
+    const sql = `SELECT MaTX, TenTX FROM taixe WHERE MaTK = ? AND TrangThaiXoa = '0'`;
+    db.query(sql, [userId], callback);
   }
 };
 

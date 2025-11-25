@@ -10,7 +10,8 @@ import {
   addScheduleDetail,
   updateStopStatus,
   deleteScheduleDetails,
-  createAttendanceForSchedule
+  createAttendanceForSchedule,
+  getAttendanceBySchedule
 } from "../../controllers/admin/ScheduleController.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
@@ -28,6 +29,7 @@ router.get("/:id/details", getScheduleDetails);
 router.post("/:id/details", addScheduleDetail);
 router.delete("/:id/details", deleteScheduleDetails);
 router.post("/:id/attendance", createAttendanceForSchedule);
+router.get("/:id/attendance", getAttendanceBySchedule);
 
 // Routes với :id
 router.get("/:id", getScheduleById);

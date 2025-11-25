@@ -134,3 +134,21 @@ export const getDriverSchedule = (req, res) => {
   });
 };
 
+// API để fix tài xế không có MaTK
+export const fixDriverAccount = (req, res) => {
+  const { driverId, accountId } = req.body;
+  
+  if (!driverId || !accountId) {
+    return res.status(400).json({ message: "Thiếu thông tin driverId hoặc accountId" });
+  }
+  
+  const sql = "UPDATE taixe SET MaTK = ? WHERE MaTX = ?";
+  db.query(sql, [accountId, driverId], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Không tìm thấy tài xế" });
+    }
+    res.json({ message: "Cập nhật MaTK cho tài xế thành công" });
+  });
+};
+

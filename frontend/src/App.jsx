@@ -12,10 +12,12 @@ import Tracking from './views/admin/Tracking';
 import Stations from './views/admin/Stations';
 import DriverDashboard from './views/driver/DriverDashboard';
 import DriverTracking from './views/driver/DriverTracking';
+import CommonMapView from './views/common/MapView';
 import ParentDashboard from './views/parent/ParentDashboard';
-import ParentHistory from './views/parent/ParentHistory';
-import ParentTracking from './views/parent/ParentTracking';
+import ParentMapView from './views/parent/ParentMapView';
+import ParentNotificationHistory from './views/parent/NotificationHistory';
 import Schedule from './views/admin/Schedule';
+import ScheduleTracking from './views/admin/ScheduleTracking';
 import PrivateRoute from './components/PrivateRoute';
 // import DriverTracking from './views/DriverTracking';
 import DriverSchedule from './views/DriverSchedule';
@@ -101,10 +103,34 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/admin/overview"
+              element={
+                <PrivateRoute allowedRoles={['AD']}>
+                  <Overview />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/schedule-tracking/:scheduleId"
+              element={
+                <PrivateRoute allowedRoles={['AD']}>
+                  <ScheduleTracking />
+                </PrivateRoute>
+              }
+            />
 
             {/* Driver Routes */}
             <Route
               path="/driver-dashboard"
+              element={
+                <PrivateRoute allowedRoles={['TX']}>
+                  <DriverDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/driver-dashboard/:scheduleId"
               element={
                 <PrivateRoute allowedRoles={['TX']}>
                   <DriverDashboard />
@@ -119,11 +145,27 @@ function App() {
                 </PrivateRoute>
               }
             />
-             <Route
+            <Route
+              path="/driver-tracking/:scheduleId"
+              element={
+                <PrivateRoute allowedRoles={['TX']}>
+                  <DriverTracking />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/driver-schedule"
               element={
                 <PrivateRoute allowedRoles={['TX']}>
                   <DriverSchedule />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/driver-map/:scheduleId"
+              element={
+                <PrivateRoute allowedRoles={['TX']}>
+                  <CommonMapView />
                 </PrivateRoute>
               }
             />
@@ -138,26 +180,18 @@ function App() {
               }
             />
             <Route
-              path="/parent-tracking"
+              path="/parent-notifications"
               element={
                 <PrivateRoute allowedRoles={['PH']}>
-                  <ParentTracking />
+                  <ParentNotificationHistory />
                 </PrivateRoute>
               }
             />
             <Route
-              path="/parent-history"
+              path="/parent-map/:scheduleId"
               element={
                 <PrivateRoute allowedRoles={['PH']}>
-                  <ParentHistory />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/parent"
-              element={
-                <PrivateRoute allowedRoles={['PH']}>
-                  <ParentTracking />
+                  <ParentMapView />
                 </PrivateRoute>
               }
             />

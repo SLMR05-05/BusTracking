@@ -3,8 +3,9 @@ import mysql from "mysql2";
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "123456789",
+  password: "",
   database: "quanlyxebuyt",
+  timezone: "+07:00"  // Cấu hình timezone Việt Nam (UTC+7)
 });
 
 db.connect(err => {

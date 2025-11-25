@@ -53,7 +53,10 @@ export default function Routes() {
       
       if (response.ok) {
         const data = await response.json();
-        setStations(data);
+        // Sort stations by ThuTu (order)
+        const sortedData = data.sort((a, b) => (a.ThuTu || 0) - (b.ThuTu || 0));
+        console.log('📍 [Routes] Stations for route', routeId, ':', sortedData);
+        setStations(sortedData);
       }
     } catch (error) {
       console.error('Error fetching stations:', error);
@@ -170,12 +173,12 @@ export default function Routes() {
       };
 
       await Promise.all([
-        fetch(`${API_URL}/routes/stops/${newStations[currentIndex].MaTram}`, {
+        fetch(`${API_URL}/routes/${selectedRoute.MaTD}/stops/${newStations[currentIndex].MaTram}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ ThuTu: newStations[currentIndex].ThuTu })
         }),
-        fetch(`${API_URL}/routes/stops/${newStations[newIndex].MaTram}`, {
+        fetch(`${API_URL}/routes/${selectedRoute.MaTD}/stops/${newStations[newIndex].MaTram}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ ThuTu: newStations[newIndex].ThuTu })

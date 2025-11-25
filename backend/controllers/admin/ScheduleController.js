@@ -1,6 +1,9 @@
 import ScheduleModel from "../../models/admin/ScheduleModel.js";
 import StudentModel from "../../models/admin/StudentModel.js";
 import AttendanceModel from "../../models/admin/AttendanceModel.js";
+import { createStopPassedNotification } from "../../services/notificationService.js";
+import { getIO } from "../../socket/socketManager.js";
+import db from "../../config/db.js";
 
 export const getAllSchedules = (req, res) => {
   ScheduleModel.getAll((err, results) => {
@@ -185,10 +188,53 @@ export const updateStopStatus = (req, res) => {
   const { detailId } = req.params;
   const { status } = req.body;
 
-  ScheduleModel.updateStopStatus(detailId, status, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
-    res.json({ message: "Cập nhật trạng thái điểm dừng thành công" });
+  // Lấy thông tin chi tiết lịch trình trước khi update
+  const getDetailSql = `
+    SELECT MaLT, MaTram 
+    FROM chitietlichtrinh 
+    WHERE MaCTLT = ?
+  `;
+
+  db.query(getDetailSql, [detailId], (getErr, detailResults) => {
+    if (getErr) return res.status(500).json({ error: getErr.message });
+    if (detailResults.length === 0) return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
+
+    const { MaLT: scheduleId, MaTram: stopId } = detailResults[0];
+
+    // Update trạng thái
+    ScheduleModel.updateStopStatus(detailId, status, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
+
+      console.log(`🚏 [updateStopStatus] Xe qua trạm: scheduleId=${scheduleId}, stopId=${stopId}, status=${status}`);
+
+      // Emit realtime update cho trạng thái trạm
+      try {
+        const io = getIO();
+        io.to(`schedule-${scheduleId}`).emit('stop-status-update', {
+          scheduleId,
+          stopId,
+          detailId,
+          status
+        });
+        console.log(`📡 Đã emit stop-status-update cho schedule ${scheduleId}`);
+      } catch (socketErr) {
+        console.error('⚠️ Lỗi emit socket:', socketErr);
+      }
+
+      // Nếu xe vừa qua trạm (status = '1'), tạo thông báo
+      if (status === '1') {
+        createStopPassedNotification(scheduleId, stopId, (notifErr, notifications) => {
+          if (notifErr) {
+            console.error('⚠️ Lỗi tạo thông báo qua trạm:', notifErr);
+          } else {
+            console.log(`✅ Đã tạo ${notifications.length} thông báo qua trạm`);
+          }
+        });
+      }
+
+      res.json({ message: "Cập nhật trạng thái điểm dừng thành công" });
+    });
   });
 };
 
@@ -196,5 +242,15 @@ export const deleteScheduleDetails = (req, res) => {
   ScheduleModel.deleteAllDetails(req.params.id, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Xóa chi tiết lịch trình thành công" });
+  });
+};
+
+// Lấy danh sách điểm danh theo lịch trình
+export const getAttendanceBySchedule = (req, res) => {
+  const scheduleId = req.params.id;
+  
+  AttendanceModel.getBySchedule(scheduleId, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
   });
 };

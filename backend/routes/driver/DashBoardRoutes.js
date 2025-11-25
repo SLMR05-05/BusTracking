@@ -8,14 +8,27 @@ import {
   getAttendance,
   updateAttendance,
   getBusLocation,
-  getSummary
+  getSummary,
+  checkSchedulePermission,
+  getProgress,
+  createIncident
 } from "../../controllers/driver/DashBoardController.js";
-import { verifyToken } from "../../Middleware/authMiddleware.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Tất cả routes cần xác thực token
 router.use(verifyToken);
+
+// Test endpoint - kiểm tra token
+router.get("/test", (req, res) => {
+  res.json({
+    message: "Token hợp lệ",
+    userId: req.user.userId,
+    roleId: req.user.roleId,
+    role: req.user.role
+  });
+});
 
 // 1. Lấy thông tin tài xế hiện tại
 router.get("/info", getDriverInfo);
@@ -45,5 +58,14 @@ router.get("/bus/:busId/location", getBusLocation);
 
 // 9. Lấy tóm tắt dashboard
 router.get("/schedules/:scheduleId/summary", getSummary);
+
+// 10. Kiểm tra quyền chạy lịch trình
+router.get("/schedules/:scheduleId/permission", checkSchedulePermission);
+
+// 11. Lấy tiến độ lịch trình
+router.get("/schedules/:scheduleId/progress", getProgress);
+
+// 12. Báo cáo sự cố
+router.post("/incidents", createIncident);
 
 export default router;

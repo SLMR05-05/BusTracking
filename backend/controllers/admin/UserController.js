@@ -54,17 +54,55 @@ export const login = (req, res) => {
       JWT_SECRET,
       { expiresIn: "24h" }
     );
-    // console.log(user);
-    // 6. Trả về thông tin user và token
+    
+    // 6. Lấy thông tin bổ sung theo role
+    const userResponse = {
+      id: user.MaTK,
+      username: user.TenDangNhap,
+      roleId: user.MaVT,
+      role: user.TenVT,
+      name: user.TenVT // Default name
+    };
+
+    // Nếu là phụ huynh, lấy thêm MaPH và TenPH
+    if (user.MaVT === 'PH') {
+      UserModel.getParentInfo(user.MaTK, (errParent, parentResults) => {
+        if (!errParent && parentResults.length > 0) {
+          userResponse.parentId = parentResults[0].MaPH;
+          userResponse.name = parentResults[0].TenPH;
+        }
+        
+        res.json({
+          message: "Đăng nhập thành công",
+          token: token,
+          user: userResponse,
+        });
+      });
+      return;
+    }
+
+    // Nếu là tài xế, lấy thêm MaTX và TenTX
+    if (user.MaVT === 'TX') {
+      UserModel.getDriverInfo(user.MaTK, (errDriver, driverResults) => {
+        if (!errDriver && driverResults.length > 0) {
+          userResponse.driverId = driverResults[0].MaTX;
+          userResponse.name = driverResults[0].TenTX;
+        }
+        
+        res.json({
+          message: "Đăng nhập thành công",
+          token: token,
+          user: userResponse,
+        });
+      });
+      return;
+    }
+
+    // Các role khác (Admin, etc.)
     res.json({
       message: "Đăng nhập thành công",
       token: token,
-      user: {
-        id: user.MaTK,
-        username: user.TenDangNhap,
-        roleId: user.MaVT,
-        role: user.TenVT,
-      },
+      user: userResponse,
     });
   });
 };

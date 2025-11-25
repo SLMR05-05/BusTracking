@@ -1,200 +1,259 @@
 import React, { useState, useEffect } from 'react';
-import { mockStudents, mockTracking, mockParents } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
-import { MapPin, Clock, Navigation, User, Phone } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import NotificationPanel from '../../components/parent/NotificationPanel';
+
+const API_URL = 'http://localhost:5000/api';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
-  const [myChildren, setMyChildren] = useState([]);
-  const [busInfo, setBusInfo] = useState(null);
-
-  const [showMap, setShowMap] = useState(false);
+  const navigate = useNavigate();
+  const [students, setStudents] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate finding parent's children
-    const parentInfo = mockParents.find(p => p.name.includes(user?.name?.split(' ')[0] || 'Nguyễn'));
-    const children = mockStudents.filter(student => student.parentId === (parentInfo?.id || 1));
-    setMyChildren(children);
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('[ParentDashboard] Token:', token ? 'exists' : 'missing');
+      
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Lấy danh sách học sinh
+      console.log('[ParentDashboard] Fetching students...');
+      const studentsRes = await axios.get(`${API_URL}/parents/me/students`, config);
+      console.log('[ParentDashboard] Students:', studentsRes.data);
+      setStudents(studentsRes.data);
+
+      // Lấy lịch trình hôm nay (sử dụng Local date để tránh lệch do timezone UTC)
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      console.log('[ParentDashboard] Fetching schedules for date:', today);
+      const schedulesRes = await axios.get(`${API_URL}/schedules/by-date?date=${today}`, config);
+      console.log('[ParentDashboard] All schedules:', schedulesRes.data);
+      
+      // Lọc lịch trình liên quan đến học sinh
+      const relevantSchedules = schedulesRes.data.filter(schedule => {
+        return studentsRes.data.some(student => {
+          const match = schedule.MaTD === student.MaTD;
+          console.log(`[ParentDashboard] Comparing schedule ${schedule.MaTD} with student ${student.MaTD}: ${match}`);
+          return match;
+        });
+      });
+      
+      console.log('[ParentDashboard] Relevant schedules:', relevantSchedules);
+      setSchedules(relevantSchedules);
+      setLoading(false);
+    } catch (error) {
+      console.error('[ParentDashboard] Error fetching data:', error);
+      console.error('[ParentDashboard] Error response:', error.response?.data);
+      console.error('[ParentDashboard] Error status:', error.response?.status);
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    const timePart = timeString.split('T')[1] || timeString;
+    return timePart.substring(0, 5);
+  };
+
+  const parseDateString = (dateString) => {
+    if (!dateString) return null;
+    // If ISO date or ISO datetime
+    if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(dateString)) {
+      return new Date(dateString);
+    }
+    // If dd-mm-yyyy
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+      const [dd, mm, yyyy] = dateString.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    }
+    // Fallback
+    const parsed = new Date(dateString);
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  const formatDate = (dateString) => {
+    const date = parseDateString(dateString);
+    if (!date) return '';
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const getScheduleStatus = (schedule) => {
+    const now = new Date();
+    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const scheduleDay = (() => {
+      if (!schedule?.NgayChay) return null;
+      const iso = /^\d{4}-\d{2}-\d{2}/.test(schedule.NgayChay) ? schedule.NgayChay.split('T')[0] : null;
+      if (iso) return iso;
+      if (/^\d{2}-\d{2}-\d{4}$/.test(schedule.NgayChay)) {
+        const [dd, mm, yyyy] = schedule.NgayChay.split('-');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      // fallback parse
+      const d = new Date(schedule.NgayChay);
+      if (isNaN(d)) return null;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
     
-    // Get bus info for the first child
-    if (children.length > 0) {
-      const childBus = mockTracking.find(bus => bus.busId === children[0].busId);
-      setBusInfo(childBus);
-    }
-  }, [user]);
-
-
-
-  const getBusStatusColor = (status) => {
-    switch (status) {
-      case 'on_route': return 'text-green-600 bg-green-100';
-      case 'picking_up': return 'text-blue-600 bg-blue-100';
-      case 'dropping_off': return 'text-purple-600 bg-purple-100';
-      case 'delayed': return 'text-orange-600 bg-orange-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
+    if (scheduleDay !== todayLocal) return { text: 'Không hoạt động', color: 'gray' };
+    if (schedule.TrangThai === 'completed') return { text: 'Đã hoàn thành', color: 'green' };
+    if (schedule.TrangThai === 'running') return { text: 'Đang chạy', color: 'blue' };
+    return { text: 'Chưa bắt đầu', color: 'orange' };
   };
 
-  const getBusStatusText = (status) => {
-    switch (status) {
-      case 'on_route': return 'Đang di chuyển';
-      case 'picking_up': return 'Đang đón học sinh';
-      case 'dropping_off': return 'Đang trả học sinh';
-      case 'delayed': return 'Bị chậm';
-      default: return 'Không xác định';
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-800 text-white rounded-xl p-6">
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="bg-white rounded-lg p-6 shadow border flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Chào {user?.name || 'Phụ huynh'}!</h1>
-            <p className="text-green-100 mt-1">Theo dõi hành trình đưa đón con em - {new Date().toLocaleDateString('vi-VN')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Phụ Huynh</h1>
+            <p className="text-gray-600 mt-1">Xin chào, {user?.name || 'Phụ huynh'}</p>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">{myChildren.length}</div>
-            <div className="text-green-100">Con em</div>
-          </div>
+          
+          {/* Notification Panel */}
+          <NotificationPanel 
+            parentId={user?.parentId} 
+            token={localStorage.getItem('token')}
+          />
         </div>
-      </div>
 
-
-
-      {/* Children Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {myChildren.map((child) => (
-          <div key={child.id} className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                {child.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">{child.name}</h3>
-                <p className="text-gray-600">{child.grade} • {child.studentId}</p>
-                <p className="text-sm text-gray-500">{child.address}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Xe buýt:</span>
-                <span className="font-medium text-gray-900">{child.busId || 'Chưa phân công'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Giờ đón:</span>
-                <span className="font-medium text-gray-900">{child.pickupTime || 'Chưa có'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Giờ trả:</span>
-                <span className="font-medium text-gray-900">{child.dropoffTime || 'Chưa có'}</span>
-              </div>
-            </div>
+        {/* Danh sách học sinh */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="p-6 border-b bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">Danh sách con em</h2>
           </div>
-        ))}
-      </div>
-
-      {/* Bus Tracking */}
-      {busInfo && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-6 border-b bg-blue-50">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <Navigation className="text-blue-600" size={24} />
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Theo dõi xe buýt {busInfo.busId}</h2>
-                  <p className="text-gray-600">Vị trí và trạng thái hiện tại</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowMap(!showMap)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                {showMap ? 'Ẩn bản đồ' : 'Xem bản đồ'}
-              </button>
-            </div>
-          </div>
-
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <div className="text-center">
-                <MapPin className="mx-auto mb-2 text-blue-600" size={32} />
-                <div className="text-sm text-gray-500">Vị trí hiện tại</div>
-                <div className="font-semibold text-gray-900">{busInfo.currentLocation}</div>
+            {students.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Chưa có thông tin học sinh</p>
               </div>
-              <div className="text-center">
-                <Navigation className="mx-auto mb-2 text-green-600" size={32} />
-                <div className="text-sm text-gray-500">Điểm tiếp theo</div>
-                <div className="font-semibold text-gray-900">{busInfo.nextStop}</div>
-              </div>
-              <div className="text-center">
-                <Clock className="mx-auto mb-2 text-orange-600" size={32} />
-                <div className="text-sm text-gray-500">Dự kiến đến</div>
-                <div className="font-semibold text-gray-900">{busInfo.estimatedArrival}</div>
-              </div>
-              <div className="text-center">
-                <div className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${getBusStatusColor(busInfo.status)}`}>
-                  {getBusStatusText(busInfo.status)}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">Trạng thái</div>
-              </div>
-            </div>
-
-            {/* Map */}
-            {showMap && (
-              <div className="mb-6">
-                <div className="h-64 bg-gray-100 rounded-lg overflow-hidden relative">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4326!2d106.6297!3d10.8231!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sBen%20Thanh%20Market!5e0!3m2!1sen!2s!4v1703123456789!5m2!1sen!2s"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Bus Location"
-                  ></iframe>
-                  
-                  {/* Bus marker */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg animate-pulse">
-                      🚌
+            ) : (
+              <div className="space-y-4">
+                {students.map((student) => (
+                  <div key={student.MaHS} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900">{student.TenHS}</h3>
+                        <div className="mt-2 space-y-1 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Lớp:</span>
+                            <span className="ml-2">{student.Lop}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Trạm:</span>
+                            <span className="ml-2">{student.TenTram || 'Chưa có'}</span>
+                          </div>
+                          {student.TenTuyenDuong && (
+                            <div>
+                              <span className="font-medium">Tuyến đường:</span>
+                              <span className="ml-2">{student.TenTuyenDuong}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
-
-            {/* Driver Info */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <User size={20} />
-                Thông tin tài xế
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Tên tài xế:</span>
-                  <span className="ml-2 font-medium">{busInfo.driverName}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Tuyến đường:</span>
-                  <span className="ml-2 font-medium">{busInfo.routeName}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Tốc độ:</span>
-                  <span className="ml-2 font-medium">{busInfo.speed} km/h</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Cập nhật:</span>
-                  <span className="ml-2 font-medium">{busInfo.lastUpdate}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-      )}
+
+        {/* Lịch trình hôm nay */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="p-6 border-b bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">Lịch trình hôm nay</h2>
+            <p className="text-sm text-gray-600 mt-1">Các chuyến xe đưa đón</p>
+          </div>
+          <div className="p-6">
+            {schedules.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Không có lịch trình nào hôm nay</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {schedules.map((schedule) => {
+                  const status = getScheduleStatus(schedule);
+                  return (
+                    <div key={schedule.MaLT} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-base font-bold text-gray-900 mb-3">
+                            {schedule.TenTuyenDuong}
+                          </h3>
+                          
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div>
+                              <span className="font-medium">Xe:</span>
+                              <span className="ml-2">{schedule.BienSo}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Tài xế:</span>
+                              <span className="ml-2">{schedule.TenTX}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Thời gian:</span>
+                              <span className="ml-2">
+                                {formatTime(schedule.GioBatDau)} - {formatTime(schedule.GioKetThuc)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Ngày:</span>
+                              <span className="ml-2">{formatDate(schedule.NgayChay)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <span
+                          className={`px-3 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                            status.color === 'green'
+                              ? 'bg-green-100 text-green-700'
+                              : status.color === 'blue'
+                              ? 'bg-blue-100 text-blue-700'
+                              : status.color === 'orange'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {status.text}
+                        </span>
+                      </div>
+                      
+                      <button
+                        onClick={() => navigate(`/parent-map/${schedule.MaLT}`)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        Xem bản đồ lộ trình
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

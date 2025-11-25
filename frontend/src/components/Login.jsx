@@ -33,7 +33,7 @@ export default function Login() {
         return;
       }
 
-      // ✅ Gọi hàm login từ AuthContext thay vì lưu trực tiếp
+      //  Gọi hàm login từ AuthContext thay vì lưu trực tiếp
       login(data.token, data.user);
 
       // Chuyển hướng theo role
@@ -44,7 +44,7 @@ export default function Login() {
           navigate('/dashboard');
           break;
         case 'TX':
-          navigate('/driver-dashboard');
+          navigate('/driver-schedule');
           break;
         case 'PH':
           navigate('/parent-dashboard');

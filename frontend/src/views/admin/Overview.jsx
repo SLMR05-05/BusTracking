@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents  } from "react-leaflet";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   RefreshCw,
-  Bell,
   Bus,
   Users,
   Route,
   User,
   MapPin,
   Calendar,
+  Clock,
+  Bell,
 } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+import axios from "axios";
+import { io } from "socket.io-client";
+
+const API_URL = 'http://localhost:5000/api';
 
 const OverviewDashboard = () => {
+  const navigate = useNavigate();
+  
   // Mock data
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalStudents: 120,
     activeBuses: 5,
     totalDrivers: 8,
@@ -23,168 +29,178 @@ const OverviewDashboard = () => {
     totalSchedule: 5,
   });
 
-  const [buses, setBuses] = useState([
-    {
-      id: 1,
-      plate: "51B-223.41",
-      lat: 10.7765,
-      lng: 106.7009,
-      status: "Đang chạy",
-    },
-    {
-      id: 2,
-      plate: "51B-556.23",
-      lat: 10.7841,
-      lng: 106.6992,
-      status: "Đang dừng",
-    },
-  ]);
+  const [incidents, setIncidents] = useState([]);
+  const [realtimeNotifications, setRealtimeNotifications] = useState([]);
 
-  const [activities, setActivities] = useState([
-    { time: "07:45", text: "Xe 51B-223.41 khởi hành từ Trường A" },
-    { time: "07:50", text: "Học sinh Minh Anh đã lên xe 51B-556.23" },
-    { time: "07:52", text: "Xe 51B-556.23 bị kẹt xe tại đường Trần Hưng Đạo" },
-  ]);
-
-  const [autoRefresh, setAutoRefresh] = useState(true);
-
-  // Giả lập refresh dữ liệu mỗi 5s
+  // Socket.IO Realtime
   useEffect(() => {
-    if (!autoRefresh) return;
+    const socket = io('http://localhost:5000');
+    
+    socket.on('connect', () => {
+      console.log('🔌 Admin connected to socket');
+      socket.emit('join-admin-room');
+    });
+    
+    socket.on('admin-update', (data) => {
+      console.log('📢 Admin nhận update:', data);
+      
+      if (data.type === 'attendance') {
+        setRealtimeNotifications(prev => [data.data, ...prev].slice(0, 10));
+      }
+    });
+    
+    return () => socket.disconnect();
+  }, []);
+
+  // Fetch incidents
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  const fetchIncidents = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      // Giả sử có API endpoint để lấy báo cáo sự cố
+      // Nếu chưa có, sẽ cần tạo backend API
+      const res = await axios.get(`${API_URL}/incidents`, config);
+      
+      console.log('[Overview] Incidents:', res.data);
+      setIncidents(res.data || []);
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+      // Nếu API chưa có, set empty array
+      setIncidents([]);
+    }
+  };
+
+  // Auto refresh every 30 seconds
+  useEffect(() => {
     const interval = setInterval(() => {
       console.log("🔄 Cập nhật dữ liệu...");
-    }, 5000);
+      fetchIncidents();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, []);
 
   const handleManualRefresh = () => {
-    console.log("🧩 Refresh thủ công");
+    fetchIncidents();
   };
-  
-  function AddStop({ onAdd }) {
-    useMapEvents({
-      async click(e) {
-        const { lat, lng } = e.latlng;
-        console.log("📍 Tọa độ mới:", lat, lng);
-
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`
-          );
-          const data = await res.json();
-          console.log("📍 Địa chỉ:", data.display_name);
-          onAdd({ lat, lng, address: data.display_name });
-        } catch (err) {
-          console.error("❌ Lỗi khi lấy địa chỉ:", err);
-        }
-      },
-    });
-    return null;
-  }
 
   return (
     <div className="p-5 bg-gray-50 min-h-screen text-gray-800 space-y-6">
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Tổng quan</h1>
-          <p className="text-gray-500 text-sm">
-            Theo dõi hoạt động và vị trí xe buýt theo thời gian thực
+          <h1 className="text-2xl font-bold text-gray-800">Tổng quan</h1>
+          <p className="text-gray-600 text-sm mt-1">
+            Theo dõi hoạt động hệ thống
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleManualRefresh}
-            className="p-2 bg-white shadow rounded-full hover:bg-gray-100"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
+            <span className="text-sm">Làm mới</span>
           </button>
-          <button className="p-2 bg-white shadow rounded-full hover:bg-gray-100 relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-          <label className="flex items-center gap-2 ml-3 text-sm">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-            />
-            Tự động cập nhật
-          </label>
         </div>
       </div>
+
+      {/* THÔNG BÁO REALTIME */}
+      {realtimeNotifications.length > 0 && (
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-500 p-4 rounded-lg">
+          <div className="flex items-start gap-3">
+            <Bell className="text-green-600 mt-1" size={20} />
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-800 mb-2">Điểm danh mới nhất</h3>
+              <div className="space-y-2">
+                {realtimeNotifications.slice(0, 3).map((notif, index) => (
+                  <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
+                    🔔 {notif.NoiDung}
+                    <span className="text-xs text-gray-500 ml-2">
+                      {new Date(notif.ThoiGian).toLocaleTimeString('vi-VN')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* THỐNG KÊ NHANH */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard
-          color="bg-blue-100"
-          icon={<Users className="text-blue-600" />}
-          label="Học sinh"
-          value={stats.totalStudents}
-        />
-        <StatCard
-          color="bg-green-100"
-          icon={<User className="text-green-600" />}
-          label="Tài xế"
-          value={stats.totalDrivers}
-        />
-        <StatCard
-          color="bg-yellow-100"
-          icon={<Bus className="text-yellow-600" />}
-          label="Xe hoạt động"
-          value={stats.activeBuses}
-        />
-        <StatCard
-          color="bg-purple-100"
-          icon={<Route className="text-purple-600" />}
-          label="Tuyến đường"
-          value={stats.totalRoutes}
-        />
-        <StatCard
-          color="bg-pink-100"
-          icon={<MapPin className="text-pink-600" />}
-          label="Trạm"
-          value={stats.totalStations}
-        />
-        <StatCard
-          color="bg-red-100"
-          icon={<Calendar className="text-red-600" />}
-          label="Lịch trình"
-          value={stats.totalSchedule}
-        />
+        <StatCard icon={<Users size={20} />} label="Học sinh" value={stats.totalStudents} />
+        <StatCard icon={<User size={20} />} label="Tài xế" value={stats.totalDrivers} />
+        <StatCard icon={<Bus size={20} />} label="Xe hoạt động" value={stats.activeBuses} />
+        <StatCard icon={<Route size={20} />} label="Tuyến đường" value={stats.totalRoutes} />
+        <StatCard icon={<MapPin size={20} />} label="Trạm" value={stats.totalStations} />
+        <StatCard icon={<Calendar size={20} />} label="Lịch trình" value={stats.totalSchedule} />
       </div>
 
-      {/* BẢN ĐỒ */}
+      {/* BÁO CÁO SỰ CỐ */}
       <div className="bg-white shadow rounded-xl overflow-hidden">
-        <div className="p-3 border-b flex justify-between items-center">
-          <h2 className="font-semibold">Bản đồ theo dõi xe</h2>
-          <p className="text-sm text-gray-500">
-            Số xe đang hiển thị: {buses.length}
-          </p>
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="font-semibold flex items-center gap-2">
+            <Bell className="text-red-600" size={20} />
+            Báo cáo sự cố
+          </h2>
+          <span className="text-sm text-gray-500">
+            {incidents.length} sự cố
+          </span>
         </div>
-        <div className="h-[450px]">
-          <MapContainer
-            center={[10.7765, 106.7009]}
-            zoom={13}
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer
-              attribution="&copy; OpenStreetMap"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {buses.map((bus) => (
-              <Marker key={bus.id} position={[bus.lat, bus.lng]}>
-                <Popup>
-                  <div className="text-sm">
-                    <b>{bus.plate}</b>
-                    <br />
-                    Trạng thái: {bus.status}
+        <div className="p-4">
+          {incidents.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <Bell size={48} className="mx-auto mb-2 opacity-50" />
+              <p>Không có sự cố nào được báo cáo</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {incidents.slice(0, 10).map(incident => (
+                <div key={incident.MaCB} className="border-l-4 border-red-500 bg-red-50 p-4 rounded-r-lg hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">
+                          Sự cố
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {incident.MaCB}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 mb-2">
+                        {incident.NoiDungSuCo}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-gray-600">
+                        {incident.TenTuyenDuong && (
+                          <span className="flex items-center gap-1">
+                            <Route size={12} />
+                            {incident.TenTuyenDuong}
+                          </span>
+                        )}
+                        {incident.TenTX && (
+                          <span className="flex items-center gap-1">
+                            <User size={12} />
+                            {incident.TenTX}
+                          </span>
+                        )}
+                        {incident.BienSo && (
+                          <span className="flex items-center gap-1">
+                            <Bus size={12} />
+                            {incident.BienSo}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </Popup>
-              </Marker>
-            ))}
-             <AddStop onAdd={(pos) => console.log('Điểm dừng mới:', pos)} />
-          </MapContainer>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -193,14 +209,14 @@ const OverviewDashboard = () => {
 };
 
 // Component hiển thị card thống kê
-const StatCard = ({ icon, label, value, color }) => (
-  <div
-    className={`rounded-xl p-4 shadow flex flex-col items-start justify-center gap-2 ${color}`}
-  >
-    <div className="text-gray-700">{icon}</div>
-    <div>
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-gray-600 text-sm">{label}</div>
+const StatCard = ({ icon, label, value }) => (
+  <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div className="text-gray-600">{icon}</div>
+      <div className="text-right">
+        <div className="text-2xl font-bold text-gray-800">{value}</div>
+        <div className="text-gray-600 text-sm">{label}</div>
+      </div>
     </div>
   </div>
 );
