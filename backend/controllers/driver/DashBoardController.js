@@ -279,3 +279,41 @@ export const getProgress = (req, res) => {
     res.json(results[0]);
   });
 };
+
+// 12. Báo cáo sự cố
+export const createIncident = (req, res) => {
+  const { description, scheduleId, busId } = req.body;
+  const maTK = req.user.userId;
+
+  if (!description) {
+    return res.status(400).json({ message: 'Nội dung sự cố là bắt buộc' });
+  }
+
+  // Lấy MaTX từ MaTK
+  DashboardModel.getDriverInfo(maTK, (err, driverInfo) => {
+    if (err || !driverInfo || driverInfo.length === 0) {
+      return res.status(500).json({ message: 'Không tìm thấy thông tin tài xế' });
+    }
+
+    const maTX = driverInfo[0].MaTX;
+    const maCB = `CB${Date.now()}`;
+
+    const sql = `
+      INSERT INTO canhbaosuco (MaCB, MaLT, MaTX, NoiDungSuCo, TrangThaiXoa)
+      VALUES (?, ?, ?, ?, '0')
+    `;
+
+    db.query(sql, [maCB, scheduleId, maTX, description], (insertErr, result) => {
+      if (insertErr) {
+        console.error('❌ Lỗi tạo báo cáo sự cố:', insertErr);
+        return res.status(500).json({ message: 'Lỗi tạo báo cáo sự cố', error: insertErr });
+      }
+
+      console.log(`✅ Tài xế ${maTX} đã báo cáo sự cố: ${description}`);
+      res.status(201).json({
+        message: 'Báo cáo sự cố thành công',
+        MaCB: maCB
+      });
+    });
+  });
+};

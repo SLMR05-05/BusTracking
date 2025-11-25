@@ -10,7 +10,8 @@ import {
   getBusLocation,
   getSummary,
   checkSchedulePermission,
-  getProgress
+  getProgress,
+  createIncident
 } from "../../controllers/driver/DashBoardController.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
@@ -63,5 +64,8 @@ router.get("/schedules/:scheduleId/permission", checkSchedulePermission);
 
 // 11. Lấy tiến độ lịch trình
 router.get("/schedules/:scheduleId/progress", getProgress);
+
+// 12. Báo cáo sự cố
+router.post("/incidents", createIncident);
 
 export default router;
