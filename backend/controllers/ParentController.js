@@ -75,16 +75,44 @@ export const createParent = (req, res) => {
   });
 };
 export const updateParent = (req, res) => {
-  const parentData = {
-    TenPH: req.body.TenPH,
-    SDT: req.body.SDT,
-    DiaChi: req.body.DiaChi
-  };
+  const parentId = req.params.id;
+  const { TenPH, SDT, DiaChi, TenDangNhap, MatKhau } = req.body;
+  
+  // Cập nhật thông tin phụ huynh
+  const parentData = { TenPH, SDT, DiaChi };
 
-  ParentModel.update(req.params.id, parentData, (err, result) => {
+  ParentModel.update(parentId, parentData, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     if (result.affectedRows === 0) return res.status(404).json({ message: "Phụ huynh không tồn tại" });
-    res.json({ message: "Cập nhật phụ huynh thành công" });
+    
+    // Nếu có cập nhật tài khoản/mật khẩu
+    if (TenDangNhap || MatKhau) {
+      // Lấy MaTK của phụ huynh
+      const getMaTKSql = "SELECT MaTK FROM phuhuynh WHERE MaPH = ?";
+      db.query(getMaTKSql, [parentId], (err2, parents) => {
+        if (err2 || parents.length === 0) {
+          return res.json({ message: "Cập nhật phụ huynh thành công (không cập nhật tài khoản)" });
+        }
+        
+        const maTK = parents[0].MaTK;
+        const accountData = {};
+        
+        if (TenDangNhap) accountData.TenDangNhap = TenDangNhap;
+        if (MatKhau) accountData.MatKhau = MatKhau;
+        
+        // Cập nhật tài khoản
+        const updateAccountSql = "UPDATE taikhoan SET ? WHERE MaTK = ?";
+        db.query(updateAccountSql, [accountData, maTK], (err3) => {
+          if (err3) {
+            console.error('Lỗi cập nhật tài khoản:', err3);
+            return res.json({ message: "Cập nhật phụ huynh thành công (lỗi cập nhật tài khoản)" });
+          }
+          res.json({ message: "Cập nhật phụ huynh và tài khoản thành công" });
+        });
+      });
+    } else {
+      res.json({ message: "Cập nhật phụ huynh thành công" });
+    }
   });
 };
 

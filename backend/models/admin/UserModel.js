@@ -20,7 +20,7 @@ const UserModel = {
   },
   update: (userId , userData, callback)=>{
     const query = "UPDATE taikhoan SET ? WHERE MaTK = ?";
-    db.query(query, [userId,userData ], callback);
+    db.query(query, [userData, userId], callback);
   },
   
   softDelete: (userId, callback) => {

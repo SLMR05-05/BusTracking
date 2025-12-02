@@ -10,6 +10,8 @@ export default function Station() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRoute, setFilterRoute] = useState('');
   
   const [formData, setFormData] = useState({
     MaTram: "",
@@ -104,18 +106,16 @@ export default function Station() {
           alert('Lỗi: ' + error);
         }
       } else {
-        // Create
+        // Create - backend sẽ tự sinh mã
         const response = await fetch(`${API_URL}/stops`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({
-            MaTram: `TR${Date.now()}`,
-            ...dataToSend
-          })
+          body: JSON.stringify(dataToSend)
         });
 
         if (response.ok) {
-          alert('Thêm trạm thành công!');
+          const result = await response.json();
+          alert(`Thêm trạm thành công! Mã trạm: ${result.MaTram || 'N/A'}`);
           fetchData();
         } else {
           const error = await response.text();
@@ -168,13 +168,25 @@ export default function Station() {
         alert('Xóa trạm thành công!');
         fetchData();
       } else {
-        alert('Lỗi khi xóa trạm!');
+        const errorData = await response.json();
+        alert('Lỗi khi xóa trạm: ' + (errorData.error || 'Không xác định'));
       }
     } catch (error) {
       console.error('Error deleting station:', error);
-      alert('Lỗi khi xóa trạm!');
+      alert('Lỗi khi xóa trạm: ' + error.message);
     }
   };
+
+  const filteredStations = stations.filter(station => {
+    const matchSearch = !searchTerm || 
+      station.MaTram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      station.TenTram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      station.DiaChi?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchRoute = !filterRoute || station.MaTD === filterRoute;
+    
+    return matchSearch && matchRoute;
+  });
 
   const handleMapClick = async (lat, lng) => {
     setFormData((prev) => ({ 
@@ -228,7 +240,7 @@ export default function Station() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Quản lý Trạm</h1>
-          <p className="text-gray-600 mt-1">Danh sách các trạm trong hệ thống ({stations.length} trạm)</p>
+          <p className="text-gray-600 mt-1">Danh sách các trạm trong hệ thống ({filteredStations.length} trạm)</p>
         </div>
         <button
           onClick={() => {
@@ -251,6 +263,31 @@ export default function Station() {
         </button>
       </div>
 
+      {/* Search and Filter */}
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="text"
+            placeholder="Tìm kiếm trạm (mã, tên, địa chỉ)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <select
+            value={filterRoute}
+            onChange={(e) => setFilterRoute(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Tất cả tuyến đường</option>
+            {routes.map((route) => (
+              <option key={route.MaTD} value={route.MaTD}>
+                {route.TenTuyenDuong}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
@@ -267,14 +304,14 @@ export default function Station() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {stations.length === 0 ? (
+              {filteredStations.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                    Chưa có trạm nào. Hãy thêm trạm mới!
+                    {searchTerm || filterRoute ? 'Không tìm thấy trạm phù hợp' : 'Chưa có trạm nào. Hãy thêm trạm mới!'}
                   </td>
                 </tr>
               ) : (
-                stations.map((station) => (
+                filteredStations.map((station) => (
                   <tr key={station.MaTram} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-bold text-gray-900">{station.MaTram}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">

@@ -23,12 +23,19 @@ export default function BusesManagement() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
 
-      const formattedBuses = res.data.map(bus => ({
-        id: bus.MaXB,
-        licensePlate: bus.BienSo,
-        capacity: bus.SucChua,
-        status: String(bus.TrangThai)   // convert sang string cho select
-      }));
+      console.log('🚌 [Buses] Raw data from API:', res.data);
+
+      const formattedBuses = res.data.map(bus => {
+        const status = String(bus.TrangThai || '0').trim();
+        console.log(`🚌 [Buses] Bus ${bus.MaXB}: TrangThai = "${bus.TrangThai}" -> "${status}"`);
+        
+        return {
+          id: bus.MaXB,
+          licensePlate: bus.BienSo,
+          capacity: bus.SucChua,
+          status: status
+        };
+      });
 
       setBuses(formattedBuses);
     } catch (error) {
@@ -116,20 +123,48 @@ export default function BusesManagement() {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case '0': return 'bg-yellow-100 text-yellow-800'; // ready
-      case '1': return 'bg-green-100 text-green-800'; // active
-      case '2': return 'bg-red-100 text-red-800'; // maintenance
-      default: return 'bg-gray-100 text-gray-800';
+    // Normalize status to string and trim
+    const normalizedStatus = String(status).trim();
+    
+    switch (normalizedStatus) {
+      case '0':
+      case 'ready':
+      case 'Sẵn sàng':
+        return 'bg-yellow-100 text-yellow-800';
+      case '1':
+      case 'active':
+      case 'Đang hoạt động':
+        return 'bg-green-100 text-green-800';
+      case '2':
+      case 'maintenance':
+      case 'Bảo trì':
+        return 'bg-red-100 text-red-800';
+      default:
+        console.warn('Unknown bus status:', status);
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status) => {
-    switch (status) {
-      case '0': return 'Sẵn sàng';
-      case '1': return 'Đang hoạt động';
-      case '2': return 'Bảo trì';
-      default: return 'Không xác định';
+    // Normalize status to string and trim
+    const normalizedStatus = String(status).trim();
+    
+    switch (normalizedStatus) {
+      case '0':
+      case 'ready':
+      case 'Sẵn sàng':
+        return 'Sẵn sàng';
+      case '1':
+      case 'active':
+      case 'Đang hoạt động':
+        return 'Đang hoạt động';
+      case '2':
+      case 'maintenance':
+      case 'Bảo trì':
+        return 'Bảo trì';
+      default:
+        console.warn('Unknown bus status:', status);
+        return `Không xác định (${status})`;
     }
   };
 

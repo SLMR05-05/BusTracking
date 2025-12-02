@@ -5,7 +5,7 @@ export const initSocket = (socketIO) => {
   io = socketIO;
   
   io.on('connection', (socket) => {
-    console.log('🔌 Client connected:', socket.id);
+    console.log(' Client connected:', socket.id);
 
     // Parent join room theo MaPH
     socket.on('join-parent-room', (parentId) => {

@@ -16,17 +16,33 @@ export const getRouteById = (req, res) => {
 };
 
 export const createRoute = (req, res) => {
-  const routeData = {
-    MaTD: req.body.MaTD,
-    BatDau: req.body.BatDau,
-    KetThuc: req.body.KetThuc,
-    TenTuyenDuong: req.body.TenTuyenDuong,
-    TrangThaiXoa: '0'
-  };
-
-  RouteModel.create(routeData, (err, result) => {
+  // Tự động sinh mã tuyến đường
+  RouteModel.getLatestId((err, latestResult) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ message: "Tạo tuyến đường thành công", id: result.insertId });
+
+    let newMaTD = "TD0001";
+    if (latestResult.length > 0 && latestResult[0].MaTD) {
+      const lastId = latestResult[0].MaTD;
+      const num = parseInt(lastId.slice(2)) + 1;
+      newMaTD = "TD" + num.toString().padStart(4, "0");
+    }
+
+    const routeData = {
+      MaTD: newMaTD,
+      BatDau: req.body.BatDau,
+      KetThuc: req.body.KetThuc,
+      TenTuyenDuong: req.body.TenTuyenDuong,
+      TrangThaiXoa: '0'
+    };
+
+    RouteModel.create(routeData, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ 
+        message: "Tạo tuyến đường thành công", 
+        MaTD: newMaTD,
+        id: result.insertId 
+      });
+    });
   });
 };
 
@@ -107,25 +123,59 @@ export const addRouteStop = (req, res) => {
 };
 
 export const updateRouteStop = (req, res) => {
-  const stopData = {
-    TenTram: req.body.TenTram,
-    DiaChi: req.body.DiaChi,
-    KinhDo: req.body.KinhDo,
-    ViDo: req.body.ViDo,
-    ThuTu: req.body.ThuTu
-  };
+  console.log(`🔄 [updateRouteStop] Cập nhật trạm ${req.params.stopId}:`, req.body);
+  
+  // Chỉ cập nhật các trường được gửi lên
+  const stopData = {};
+  
+  if (req.body.TenTram !== undefined) stopData.TenTram = req.body.TenTram;
+  if (req.body.DiaChi !== undefined) stopData.DiaChi = req.body.DiaChi;
+  if (req.body.KinhDo !== undefined) stopData.KinhDo = req.body.KinhDo;
+  if (req.body.ViDo !== undefined) stopData.ViDo = req.body.ViDo;
+  if (req.body.ThuTu !== undefined) stopData.ThuTu = req.body.ThuTu;
+
+  // Nếu không có trường nào để cập nhật
+  if (Object.keys(stopData).length === 0) {
+    return res.status(400).json({ error: "Không có dữ liệu để cập nhật" });
+  }
+
+  console.log(`📝 [updateRouteStop] Dữ liệu cập nhật:`, stopData);
 
   RouteModel.updateStop(req.params.stopId, stopData, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Điểm dừng không tồn tại" });
+    if (err) {
+      console.error(`❌ [updateRouteStop] Lỗi:`, err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (result.affectedRows === 0) {
+      console.warn(`⚠️ [updateRouteStop] Không tìm thấy trạm ${req.params.stopId}`);
+      return res.status(404).json({ message: "Điểm dừng không tồn tại" });
+    }
+    console.log(`✅ [updateRouteStop] Cập nhật thành công trạm ${req.params.stopId}`);
     res.json({ message: "Cập nhật điểm dừng thành công" });
   });
 };
 
 export const deleteRouteStop = (req, res) => {
-  RouteModel.deleteStop(req.params.stopId, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Điểm dừng không tồn tại" });
-    res.json({ message: "Xóa điểm dừng thành công" });
+  const stopId = req.params.stopId;
+  
+  // Kiểm tra xem trạm có đang được sử dụng trong lịch trình không
+  RouteModel.checkStopUsageInSchedule(stopId, (checkErr, usageResult) => {
+    if (checkErr) {
+      console.error('Error checking stop usage:', checkErr);
+      return res.status(500).json({ error: checkErr.message });
+    }
+    
+    if (usageResult && usageResult.length > 0 && usageResult[0].count > 0) {
+      return res.status(400).json({ 
+        error: "Không thể xóa trạm này vì đang được sử dụng trong lịch trình. Vui lòng xóa các lịch trình liên quan trước." 
+      });
+    }
+    
+    // Nếu không được sử dụng, tiến hành xóa
+    RouteModel.deleteStop(stopId, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Điểm dừng không tồn tại" });
+      res.json({ message: "Xóa điểm dừng thành công" });
+    });
   });
 };

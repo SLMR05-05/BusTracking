@@ -4,20 +4,19 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "leaflet-routing-machine";
 
-// Fix Leaflet default icon issue
+// Fix lỗi icon map leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-
 export default function RouteMap({ stops = [], currentPosition = null }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
   const routingControlRef = useRef(null);
-
+  const hasInitializedBoundsRef = useRef(false);
   // Initialize map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -46,7 +45,6 @@ export default function RouteMap({ stops = [], currentPosition = null }) {
     // Clear existing markers and routing control
     markersRef.current.forEach(marker => map.removeLayer(marker));
     markersRef.current = [];
-    
     if (routingControlRef.current) {
       map.removeControl(routingControlRef.current);
       routingControlRef.current = null;
@@ -179,9 +177,10 @@ export default function RouteMap({ stops = [], currentPosition = null }) {
       }
     }
 
-    // Fit bounds to show all markers
-    if (bounds.length > 0) {
+    // Fit bounds to show all markers (only on first load)
+    if (bounds.length > 0 && !hasInitializedBoundsRef.current) {
       map.fitBounds(bounds, { padding: [50, 50] });
+      hasInitializedBoundsRef.current = true;
     }
   }, [stops, currentPosition]);
 

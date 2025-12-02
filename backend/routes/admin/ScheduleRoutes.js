@@ -4,6 +4,7 @@ import {
   getScheduleById,
   createSchedule,
   updateSchedule,
+  updateScheduleStatusOnly,
   deleteSchedule,
   getSchedulesByDate,
   getScheduleDetails,
@@ -30,6 +31,7 @@ router.post("/:id/details", addScheduleDetail);
 router.delete("/:id/details", deleteScheduleDetails);
 router.post("/:id/attendance", createAttendanceForSchedule);
 router.get("/:id/attendance", getAttendanceBySchedule);
+router.put("/:id/status", updateScheduleStatusOnly);
 
 // Routes với :id
 router.get("/:id", getScheduleById);

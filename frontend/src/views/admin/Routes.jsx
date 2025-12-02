@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, MapPin, Plus, Edit, Trash2, ArrowUp, ArrowDown, Settings } from 'lucide-react';
+import { MapPin, Plus, ArrowUp, ArrowDown, Settings } from 'lucide-react';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -11,6 +11,7 @@ export default function Routes() {
   const [editingRoute, setEditingRoute] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [stations, setStations] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [formData, setFormData] = useState({
     MaTD: '',
@@ -88,15 +89,22 @@ export default function Routes() {
           throw new Error('Failed to update route');
         }
       } else {
-        // Create new route
+        // Create new route - tự sinh mã
+        const dataToSend = {
+          TenTuyenDuong: formData.TenTuyenDuong,
+          BatDau: formData.BatDau,
+          KetThuc: formData.KetThuc
+        };
+        
         const response = await fetch(`${API_URL}/routes`, {
           method: 'POST',
           headers,
-          body: JSON.stringify(formData)
+          body: JSON.stringify(dataToSend)
         });
 
         if (response.ok) {
-          alert('Tạo tuyến đường thành công!');
+          const result = await response.json();
+          alert(`Tạo tuyến đường thành công! Mã tuyến: ${result.MaTD || 'N/A'}`);
         } else {
           throw new Error('Failed to create route');
         }
@@ -172,7 +180,7 @@ export default function Routes() {
         'Content-Type': 'application/json'
       };
 
-      await Promise.all([
+      const responses = await Promise.all([
         fetch(`${API_URL}/routes/${selectedRoute.MaTD}/stops/${newStations[currentIndex].MaTram}`, {
           method: 'PUT',
           headers,
@@ -185,14 +193,32 @@ export default function Routes() {
         })
       ]);
 
-      // Re-sort and update state
-      newStations.sort((a, b) => a.ThuTu - b.ThuTu);
-      setStations(newStations);
+      // Check if both updates succeeded
+      if (responses.every(r => r.ok)) {
+        // Re-sort and update state
+        newStations.sort((a, b) => a.ThuTu - b.ThuTu);
+        setStations(newStations);
+      } else {
+        throw new Error('Failed to update station order');
+      }
     } catch (error) {
       console.error('Error updating station order:', error);
       alert('Lỗi khi cập nhật thứ tự trạm!');
+      // Reload stations to get correct order
+      await fetchStations(selectedRoute.MaTD);
     }
   };
+
+  const filteredRoutes = routes.filter(route => {
+    if (!searchTerm) return route.TrangThaiXoa === '0';
+    const search = searchTerm.toLowerCase();
+    return route.TrangThaiXoa === '0' && (
+      route.MaTD?.toLowerCase().includes(search) ||
+      route.TenTuyenDuong?.toLowerCase().includes(search) ||
+      route.BatDau?.toLowerCase().includes(search) ||
+      route.KetThuc?.toLowerCase().includes(search)
+    );
+  });
 
   if (loading) {
     return (
@@ -211,7 +237,7 @@ export default function Routes() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Quản lý tuyến đường</h1>
-          <p className="text-gray-600 mt-1">Danh sách các tuyến đường và trạm dừng</p>
+          <p className="text-gray-600 mt-1">Danh sách các tuyến đường và trạm dừng ({filteredRoutes.length} tuyến)</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -220,6 +246,17 @@ export default function Routes() {
           <Plus size={20} />
           Thêm tuyến đường
         </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <input
+          type="text"
+          placeholder="Tìm kiếm tuyến đường (mã, tên, điểm đầu/cuối)..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
       </div>
 
       {/* Table */}
@@ -235,7 +272,14 @@ export default function Routes() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {routes.filter(r => r.TrangThaiXoa === '0').map((route) => (
+            {filteredRoutes.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  {searchTerm ? 'Không tìm thấy tuyến đường phù hợp' : 'Chưa có tuyến đường nào'}
+                </td>
+              </tr>
+            ) : (
+              filteredRoutes.map((route) => (
               <tr key={route.MaTD} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{route.MaTD}</td>
                 <td className="px-6 py-4 text-sm text-gray-900">{route.TenTuyenDuong}</td>
@@ -266,7 +310,7 @@ export default function Routes() {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
@@ -281,18 +325,8 @@ export default function Routes() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {!editingRoute && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mã tuyến đường <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.MaTD}
-                    onChange={(e) => setFormData({ ...formData, MaTD: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                    placeholder="VD: TD001"
-                    required
-                  />
+                <div >
+                 
                 </div>
               )}
 

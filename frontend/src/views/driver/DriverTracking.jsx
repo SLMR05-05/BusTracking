@@ -168,9 +168,9 @@ export default function DriverTracking() {
           },
           authHeader
         );
-        console.log('✅ Đã gửi thông báo qua trạm');
+        console.log('Đã gửi thông báo qua trạm');
       } catch (notifErr) {
-        console.error('⚠️ Lỗi gửi thông báo:', notifErr);
+        console.error(' Lỗi gửi thông báo:', notifErr);
       }
 
       setStops((p) => p.map((s, i) => (i === currentStopIndex ? { ...s, status: "completed" } : s)));
@@ -179,7 +179,23 @@ export default function DriverTracking() {
         setCurrentStopIndex((i) => i + 1);
         setIsAtStop(false);
       } else {
-        alert("🎉 Hoàn thành toàn bộ lộ trình!");
+        // Hoàn thành tất cả trạm - cập nhật trạng thái lịch trình
+        try {
+          await axios.put(
+            `${API_BASE_URL}/schedules/${currentSchedule.MaLT}/status`,
+            { status: 'completed' },
+            authHeader
+          );
+          
+          alert("✅ Hoàn thành toàn bộ lộ trình!");
+          
+          // Cập nhật state local
+          setCurrentSchedule({ ...currentSchedule, TrangThai: 'completed' });
+        } catch (err) {
+          console.error('Lỗi cập nhật trạng thái:', err);
+          alert("⚠️ Hoàn thành lộ trình nhưng không thể cập nhật trạng thái");
+        }
+        
         setIsAtStop(false);
       }
     } catch {
@@ -198,9 +214,9 @@ export default function DriverTracking() {
   const completedCount = currentStopStudents.filter((s) => s.status === "2").length;
 
   // Debug
-  console.log('🔍 [DriverTracking] hasStarted:', hasStarted);
-  console.log('🔍 [DriverTracking] canRun:', canRun);
-  console.log('🔍 [DriverTracking] isAtStop:', isAtStop);
+  console.log(' [DriverTracking] hasStarted:', hasStarted);
+  console.log(' [DriverTracking] canRun:', canRun);
+  console.log(' [DriverTracking] isAtStop:', isAtStop);
 
   // ------------------------------------------------------------------
   // 5UI Loading
@@ -240,22 +256,31 @@ export default function DriverTracking() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!hasStarted && (
-              <button
-                onClick={handleStartRoute}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow-lg font-bold flex items-center gap-2 animate-pulse"
-              >
-                Bắt đầu chạy
-              </button>
-            )}
+            {currentSchedule?.TrangThai === 'completed' ? (
+              <div className="bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow font-bold flex items-center gap-2">
+                <CheckCircle size={20} />
+                Đã hoàn thành
+              </div>
+            ) : (
+              <>
+                {!hasStarted && (
+                  <button
+                    onClick={handleStartRoute}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow-lg font-bold flex items-center gap-2 animate-pulse"
+                  >
+                    Bắt đầu chạy
+                  </button>
+                )}
 
-            {hasStarted && !isAtStop && (
-              <button
-                onClick={handleArriveStop}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg font-semibold flex items-center gap-2"
-              >
-                 Đã đến trạm
-              </button>
+                {hasStarted && !isAtStop && (
+                  <button
+                    onClick={handleArriveStop}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg font-semibold flex items-center gap-2"
+                  >
+                    Đã đến trạm
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

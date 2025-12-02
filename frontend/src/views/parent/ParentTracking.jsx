@@ -3,6 +3,7 @@ import { mockStudents, mockTracking, mockParents } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 import { MapPin, Clock, Navigation, User, Phone, RefreshCw } from 'lucide-react';
 import MapView from "../../views/common/MapView";
+import NotificationPanel from '../../components/parent/NotificationPanel';
 
 export default function ParentTracking() {
   const { user } = useAuth();
@@ -69,6 +70,10 @@ export default function ParentTracking() {
             <p className="text-blue-100 mt-1">Vị trí và trạng thái xe buýt thời gian thực</p>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationPanel 
+              parentId={user?.parentId} 
+              token={localStorage.getItem('token')}
+            />
             <button
               onClick={handleRefresh}
               className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"

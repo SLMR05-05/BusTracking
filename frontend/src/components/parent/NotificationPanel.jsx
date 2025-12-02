@@ -11,6 +11,7 @@ export default function NotificationPanel({ parentId, token }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
 
   const authHeader = {
     headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` }
@@ -39,16 +40,20 @@ export default function NotificationPanel({ parentId, token }) {
     const socket = io(SOCKET_URL);
 
     socket.on('connect', () => {
-      console.log('🔌 Connected to socket');
+      console.log(' Connected to socket');
       socket.emit('join-parent-room', parentId);
     });
 
     socket.on('attendance-update', (notification) => {
-      console.log('📢 Nhận thông báo mới:', notification);
+      console.log(' Nhận thông báo mới:', notification);
       
       // Thêm vào đầu danh sách
       setNotifications(prev => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
+      
+      // Hiển thị animation
+      setHasNewNotification(true);
+      setTimeout(() => setHasNewNotification(false), 3000);
       
       // Hiển thị browser notification
       if (Notification.permission === 'granted') {
@@ -57,6 +62,18 @@ export default function NotificationPanel({ parentId, token }) {
           icon: '/vite.svg'
         });
       }
+      
+      // Phát âm thanh thông báo (optional)
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(err => console.log('Cannot play sound:', err));
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Disconnected from socket');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error(' Socket connection error:', error);
     });
 
     return () => {
@@ -107,11 +124,15 @@ export default function NotificationPanel({ parentId, token }) {
       {/* Bell Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+        className={`relative p-2 rounded-full hover:bg-gray-100 transition-colors ${
+          hasNewNotification ? 'animate-bounce' : ''
+        }`}
       >
-        <Bell size={24} className="text-gray-700" />
+        <Bell size={24} className={`${hasNewNotification ? 'text-blue-600' : 'text-gray-700'}`} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+          <span className={`absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold ${
+            hasNewNotification ? 'animate-pulse' : ''
+          }`}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -169,10 +190,18 @@ export default function NotificationPanel({ parentId, token }) {
                         ? 'bg-green-100'
                         : notif.LoaiThongBao === 'stop_passed_missed'
                         ? 'bg-red-100'
+                        : notif.LoaiThongBao === 'schedule_started'
+                        ? 'bg-blue-100'
+                        : notif.LoaiThongBao === 'approaching_stop'
+                        ? 'bg-yellow-100'
                         : 'bg-orange-100'
                     }`}>
                       {notif.LoaiThongBao === 'attendance' || notif.LoaiThongBao === 'stop_passed_success' ? (
                         <Check size={16} className="text-green-600" />
+                      ) : notif.LoaiThongBao === 'schedule_started' ? (
+                        <span className="text-blue-600">🚌</span>
+                      ) : notif.LoaiThongBao === 'approaching_stop' ? (
+                        <span className="text-yellow-600">⚠️</span>
                       ) : (
                         <AlertCircle size={16} className={
                           notif.LoaiThongBao === 'stop_passed_missed' ? 'text-red-600' : 'text-orange-600'

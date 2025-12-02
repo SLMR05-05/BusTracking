@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus,  Phone, Search, X } from 'lucide-react';
 import axios from "axios";
 
@@ -34,9 +34,14 @@ export default function ParentsManagement() {
       }));
 
       setParents(formattedParents);
+      
+      // Lấy danh sách con cho từng phụ huynh
+      const token = localStorage.getItem("token");
       formattedParents.forEach(async (p) => {
         try {
-          const childRes = await axios.get(`${API_URL}/${p.id}/children`);
+          const childRes = await axios.get(`${API_URL}/${p.id}/students`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           setChildrenData(prev => ({
             ...prev,
             [p.id]: childRes.data
@@ -67,11 +72,19 @@ export default function ParentsManagement() {
       const token = localStorage.getItem("token");
 
       if (editingParent) {
-        await axios.put(`${API_URL}/${editingParent.id}`, {
+        const updateData = {
           TenPH: formData.name,
           SDT: formData.phone,
-          DiaChi: formData.address
-        }, {
+          DiaChi: formData.address,
+          TenDangNhap: formData.username
+        };
+        
+        // Chỉ gửi mật khẩu nếu người dùng nhập
+        if (formData.password) {
+          updateData.MatKhau = formData.password;
+        }
+        
+        await axios.put(`${API_URL}/${editingParent.id}`, updateData, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -109,16 +122,29 @@ export default function ParentsManagement() {
     });
   };
 
-  const handleEdit = (parent) => {
-    setEditingParent(parent);
-    setFormData({
-      id: parent.id, 
-      name: parent.name,
-      phone: parent.phone,
-      address: parent.address,
-      status: parent.status
-    });
-    setShowModal(true);
+  const handleEdit = async (parent) => {
+    // Lấy thông tin tài khoản của phụ huynh
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}/${parent.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setEditingParent(parent);
+      setFormData({
+        id: parent.id, 
+        name: parent.name,
+        phone: parent.phone,
+        address: parent.address,
+        status: parent.status,
+        username: response.data.TenDangNhap || '',
+        password: '' // Để trống, chỉ điền nếu muốn đổi
+      });
+      setShowModal(true);
+    } catch (error) {
+      console.error('Lỗi khi lấy thông tin phụ huynh:', error);
+      alert('Lỗi khi tải thông tin tài khoản');
+    }
   };
 
 
@@ -267,47 +293,51 @@ export default function ParentsManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
-              {editingParent ? 'Sửa thông tin tài xế' : 'Thêm tài xế mới'}
+              {editingParent ? 'Sửa thông tin phụ huynh' : 'Thêm phụ huynh mới'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {!editingParent && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <h3 className="text-xl font-semibold mb-3 text-blue-600">
-                    Tài khoản
-                  </h3>
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <h3 className="text-xl font-semibold mb-3 text-blue-600">
+                  Tài khoản
+                </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Tên đăng nhập {!editingParent && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.username || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, username: e.target.value })
+                      }
+                      placeholder="Nhập tên đăng nhập"
+                      className="w-full border p-2 rounded-lg"
+                      required={!editingParent}
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Tài khoản</label>
-                      <input
-                        type="text"
-                        value={formData.username || ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, username: e.target.value })
-                        }
-                        placeholder="Nhập tên đăng nhập"
-                        className="w-full border p-2 rounded-lg"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Mật khẩu</label>
-                      <input
-                        type="text"
-                        value={formData.password || "12345"}
-                        onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
-                        }
-                        className="w-full border p-2 rounded-lg"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Mật khẩu {editingParent && <span className="text-xs text-gray-500">(để trống nếu không đổi)</span>}
+                      {!editingParent && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.password || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      placeholder={editingParent ? "Nhập mật khẩu mới" : "Mật khẩu mặc định: 12345"}
+                      className="w-full border p-2 rounded-lg"
+                      required={!editingParent}
+                    />
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="border rounded-lg p-4 bg-gray-50">
                 <h3 className="text-xl font-semibold mb-3 text-green-600">

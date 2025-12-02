@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import RouteMap from '../../components/RouteMap';
+import NotificationPanel from '../../components/parent/NotificationPanel';
+import { useAuth } from '../../contexts/AuthContext';
 
 const API_URL = 'http://localhost:5000/api';
 const SOCKET_URL = 'http://localhost:5000';
@@ -10,6 +12,7 @@ const SOCKET_URL = 'http://localhost:5000';
 export default function ParentMapView() {
   const { scheduleId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [schedule, setSchedule] = useState(null);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,12 +160,18 @@ export default function ParentMapView() {
               ← Quay lại
             </button>
             
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
-              Làm mới
-            </button>
+            <div className="flex items-center gap-3">
+              <NotificationPanel 
+                parentId={user?.parentId} 
+                token={localStorage.getItem('token')}
+              />
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              >
+                Làm mới
+              </button>
+            </div>
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900">Bản đồ lộ trình</h1>

@@ -27,9 +27,9 @@ export const createAttendanceNotification = (scheduleId, studentId, status, call
     let loaiThongBao = 'attendance';
 
     if (status === '2') {
-      noiDung = `Con ${info.TenHS} đã được đón tại ${info.TenTram} - ${info.TenTuyenDuong}`;
+      noiDung = `xe đón ${info.TenHS} đã gần đến trạm ${info.TenTram} - ${info.TenTuyenDuong}`;
     } else if (status === '0') {
-      noiDung = `Con ${info.TenHS} chưa được đón tại ${info.TenTram} - ${info.TenTuyenDuong}`;
+      noiDung = `xe đón ${info.TenHS} đã đến ${info.TenTram} - ${info.TenTuyenDuong}`;
     }
 
     // Tạo thông báo trong database

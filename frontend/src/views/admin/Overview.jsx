@@ -37,12 +37,12 @@ const OverviewDashboard = () => {
     const socket = io('http://localhost:5000');
     
     socket.on('connect', () => {
-      console.log('🔌 Admin connected to socket');
+      console.log(' Admin connected to socket');
       socket.emit('join-admin-room');
     });
     
     socket.on('admin-update', (data) => {
-      console.log('📢 Admin nhận update:', data);
+      console.log(' Admin nhận update:', data);
       
       if (data.type === 'attendance') {
         setRealtimeNotifications(prev => [data.data, ...prev].slice(0, 10));
@@ -78,7 +78,7 @@ const OverviewDashboard = () => {
   // Auto refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log("🔄 Cập nhật dữ liệu...");
+      console.log(" Cập nhật dữ liệu...");
       fetchIncidents();
     }, 30000);
     return () => clearInterval(interval);
@@ -119,7 +119,7 @@ const OverviewDashboard = () => {
               <div className="space-y-2">
                 {realtimeNotifications.slice(0, 3).map((notif, index) => (
                   <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
-                    🔔 {notif.NoiDung}
+                     {notif.NoiDung}
                     <span className="text-xs text-gray-500 ml-2">
                       {new Date(notif.ThoiGian).toLocaleTimeString('vi-VN')}
                     </span>
@@ -161,43 +161,11 @@ const OverviewDashboard = () => {
           ) : (
             <div className="space-y-3">
               {incidents.slice(0, 10).map(incident => (
-                <div key={incident.MaCB} className="border-l-4 border-red-500 bg-red-50 p-4 rounded-r-lg hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">
-                          Sự cố
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {incident.MaCB}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 mb-2">
-                        {incident.NoiDungSuCo}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-600">
-                        {incident.TenTuyenDuong && (
-                          <span className="flex items-center gap-1">
-                            <Route size={12} />
-                            {incident.TenTuyenDuong}
-                          </span>
-                        )}
-                        {incident.TenTX && (
-                          <span className="flex items-center gap-1">
-                            <User size={12} />
-                            {incident.TenTX}
-                          </span>
-                        )}
-                        {incident.BienSo && (
-                          <span className="flex items-center gap-1">
-                            <Bus size={12} />
-                            {incident.BienSo}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <IncidentCard 
+                  key={incident.MaCB} 
+                  incident={incident}
+                  onNotificationSent={fetchIncidents}
+                />
               ))}
             </div>
           )}
@@ -220,5 +188,103 @@ const StatCard = ({ icon, label, value }) => (
     </div>
   </div>
 );
+
+// Component hiển thị sự cố với nút gửi thông báo
+const IncidentCard = ({ incident, onNotificationSent }) => {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSendNotification = async () => {
+    if (!incident.MaLT) {
+      alert('Sự cố này không có lịch trình liên kết!');
+      return;
+    }
+
+    if (!window.confirm(`Gửi thông báo sự cố đến phụ huynh của lịch trình này?\n\n"${incident.NoiDungSuCo}"`)) {
+      return;
+    }
+
+    setSending(true);
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      await axios.post(
+        `${API_URL}/incidents/${incident.MaCB}/notify-parents`,
+        {},
+        config
+      );
+      
+      alert(' Đã gửi thông báo đến phụ huynh!');
+      setSent(true);
+      if (onNotificationSent) onNotificationSent();
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      alert('Lỗi khi gửi thông báo: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="border-l-4 border-yellow-500 bg-red-50 p-4 rounded-r-lg hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-red-50 text-yellow-600 text-xs px-2 py-1 rounded-full font-medium">
+              Sự cố
+            </span>
+            <span className="text-xs text-gray-500">
+              {incident.MaCB}
+            </span>
+            {sent && (
+              <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                Đã thông báo
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-medium text-gray-900 mb-2">
+            {incident.NoiDungSuCo}
+          </p>
+          <div className="flex items-center gap-4 text-xs text-gray-600">
+            {incident.TenTuyenDuong && (
+              <span className="flex items-center gap-1">
+                <Route size={12} />
+                {incident.TenTuyenDuong}
+              </span>
+            )}
+            {incident.TenTX && (
+              <span className="flex items-center gap-1">
+                <User size={12} />
+                {incident.TenTX}
+              </span>
+            )}
+            {incident.BienSo && (
+              <span className="flex items-center gap-1">
+                <Bus size={12} />
+                {incident.BienSo}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <button
+          onClick={handleSendNotification}
+          disabled={sending || sent}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+            sent
+              ? 'bg-green-100 text-green-700 cursor-not-allowed'
+              : sending
+              ? 'bg-gray-100 text-gray-400 cursor-wait'
+              : 'bg-blue-400 text-white hover:bg-blue-700'
+          }`}
+        >
+       
+          {sending ? 'Đang gửi...' : sent ? 'Đã gửi' : 'Gửi thông báo'}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default OverviewDashboard;

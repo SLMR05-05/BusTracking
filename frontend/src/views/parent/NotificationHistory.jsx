@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Bell, Check, AlertCircle, Calendar, Clock, Filter } from 'lucide-react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
+import NotificationPanel from '../../components/parent/NotificationPanel';
 
 const API_BASE_URL = 'http://localhost:5000/api/parent-notifications';
 
@@ -18,6 +20,29 @@ export default function NotificationHistory() {
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  // Socket.IO realtime - Tự động cập nhật khi có thông báo mới
+  useEffect(() => {
+    if (!user?.parentId) return;
+
+    const socket = io('http://localhost:5000');
+
+    socket.on('connect', () => {
+      console.log('🔌 NotificationHistory connected to socket');
+      socket.emit('join-parent-room', user.parentId);
+    });
+
+    socket.on('attendance-update', (notification) => {
+      console.log(' Nhận thông báo mới trong history:', notification);
+      
+      // Thêm vào đầu danh sách
+      setNotifications(prev => [notification, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.parentId]);
 
   const fetchNotifications = async () => {
     try {
@@ -87,15 +112,21 @@ export default function NotificationHistory() {
               </p>
             </div>
             
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Check size={18} />
-                Đánh dấu tất cả đã đọc
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <NotificationPanel 
+                parentId={user?.parentId} 
+                token={localStorage.getItem('token')}
+              />
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Check size={18} />
+                  Đánh dấu tất cả đã đọc
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -168,10 +199,18 @@ export default function NotificationHistory() {
                         ? 'bg-green-100'
                         : notif.LoaiThongBao === 'stop_passed_missed'
                         ? 'bg-red-100'
+                        : notif.LoaiThongBao === 'schedule_started'
+                        ? 'bg-blue-100'
+                        : notif.LoaiThongBao === 'approaching_stop'
+                        ? 'bg-yellow-100'
                         : 'bg-orange-100'
                     }`}>
                       {notif.LoaiThongBao === 'attendance' || notif.LoaiThongBao === 'stop_passed_success' ? (
                         <Check size={20} className="text-green-600" />
+                      ) : notif.LoaiThongBao === 'schedule_started' ? (
+                        <span className="text-xl"></span>
+                      ) : notif.LoaiThongBao === 'approaching_stop' ? (
+                        <span className="text-xl"></span>
                       ) : (
                         <AlertCircle size={20} className={
                           notif.LoaiThongBao === 'stop_passed_missed' ? 'text-red-600' : 'text-orange-600'

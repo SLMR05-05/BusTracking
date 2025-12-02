@@ -21,6 +21,7 @@ import parentNotificationRoutes from "./routes/NotificationRoutes.js";
 import driverNotificationRoutes from "./routes/driver/NotificationRoutes.js";
 import incidentRoutes from "./routes/admin/IncidentRoutes.js";
 import { initSocket } from "./socket/socketManager.js";
+import { autoUpdateScheduleStatuses } from "./services/scheduleTrackingService.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -62,8 +63,20 @@ io.on("connection", (socket) => {
   });
 });
 
+// Auto-check schedule status every minute
+setInterval(() => {
+  autoUpdateScheduleStatuses();
+}, 60000); // 60 seconds
+
+// Run once on startup
+setTimeout(() => {
+  console.log(' Kiểm tra trạng thái lịch trình...');
+  autoUpdateScheduleStatuses();
+}, 5000); // 5 seconds after startup
+
 // Server listen
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server đang chạy tại http://localhost:${PORT}`);
+  console.log(` Auto-check lịch trình đã được kích hoạt (mỗi 60 giây)`);
 });

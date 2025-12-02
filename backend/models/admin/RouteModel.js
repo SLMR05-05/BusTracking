@@ -49,8 +49,20 @@ const RouteModel = {
 
   // Cập nhật điểm dừng
   updateStop: (stopId, stopData, callback) => {
-    const sql = "UPDATE tram SET ? WHERE MaTram = ?";
-    db.query(sql, [stopData, stopId], callback);
+    // Build dynamic SQL query để chỉ cập nhật các trường được cung cấp
+    const fields = Object.keys(stopData);
+    if (fields.length === 0) {
+      return callback(new Error('No fields to update'));
+    }
+    
+    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const values = fields.map(field => stopData[field]);
+    values.push(stopId);
+    
+    const sql = `UPDATE tram SET ${setClause} WHERE MaTram = ?`;
+    console.log(`🔍 [RouteModel.updateStop] SQL:`, sql, 'Values:', values);
+    
+    db.query(sql, values, callback);
   },
 
   // Xóa điểm dừng
@@ -70,6 +82,28 @@ const RouteModel = {
       if (err) return callback(err);
       callback(null, results[0]);
     });
+  },
+
+  // Kiểm tra xem trạm có đang được sử dụng trong lịch trình không
+  checkStopUsageInSchedule: (stopId, callback) => {
+    const sql = `
+      SELECT COUNT(*) as count 
+      FROM chitietlichtrinh 
+      WHERE MaTram = ? AND TrangThaiXoa = '0'
+    `;
+    db.query(sql, [stopId], callback);
+  },
+
+  // Lấy mã tuyến đường mới nhất để tự sinh mã
+  getLatestId: (callback) => {
+    const sql = `
+      SELECT MaTD 
+      FROM tuyenduong 
+      WHERE MaTD LIKE 'TD%'
+      ORDER BY MaTD DESC 
+      LIMIT 1
+    `;
+    db.query(sql, callback);
   }
 };
 

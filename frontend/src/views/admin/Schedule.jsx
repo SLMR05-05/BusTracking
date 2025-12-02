@@ -309,7 +309,12 @@ const handleSubmit = async (e) => {
       body: JSON.stringify(scheduleData)
     });
 
-    if (!res.ok) continue; // Nếu lỗi, bỏ qua ngày này
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+      console.error(`❌ Lỗi tạo lịch ${date}:`, JSON.stringify(errorData, null, 2));
+      console.error('📋 Dữ liệu gửi đi:', JSON.stringify(scheduleData, null, 2));
+      continue; // Nếu lỗi, bỏ qua ngày này
+    }
 
     // Nếu tạo lịch thành công, thêm chi tiết trạm dừng cho lịch trình
     for (let i = 0; i < selectedStops.length; i++) {
@@ -324,7 +329,6 @@ const handleSubmit = async (e) => {
         body: JSON.stringify(detailData)
       });
     }
-
     // Tạo điểm danh cho lịch trình (bỏ xử lý lỗi cho đơn giản)
     await fetch(`${API_URL}/schedules/${scheduleData.MaLT}/attendance`, {
       method: 'POST',
@@ -802,15 +806,15 @@ const handleDeleteSelected = async () => {
                             <td className="px-4 py-3">
                               {attendance.TrangThai === '0' ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  Chưa đón
+                                  Chưa hoàn thành
                                 </span>
                               ) : attendance.TrangThai === '1' ? (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  Đã đón
+                                  hoàn thành
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Đã trả
+                                   hoàn thành
                                 </span>
                               )}
                             </td>

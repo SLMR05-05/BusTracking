@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -86,26 +86,21 @@ export default function ParentDashboard() {
   };
 
   const getScheduleStatus = (schedule) => {
-    const now = new Date();
-    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const scheduleDay = (() => {
-      if (!schedule?.NgayChay) return null;
-      const iso = /^\d{4}-\d{2}-\d{2}/.test(schedule.NgayChay) ? schedule.NgayChay.split('T')[0] : null;
-      if (iso) return iso;
-      if (/^\d{2}-\d{2}-\d{4}$/.test(schedule.NgayChay)) {
-        const [dd, mm, yyyy] = schedule.NgayChay.split('-');
-        return `${yyyy}-${mm}-${dd}`;
-      }
-      // fallback parse
-      const d = new Date(schedule.NgayChay);
-      if (isNaN(d)) return null;
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })();
+    // Chỉ hiển thị 3 trạng thái chính
+    const status = schedule.TrangThai?.toLowerCase();
     
-    if (scheduleDay !== todayLocal) return { text: 'Không hoạt động', color: 'gray' };
-    if (schedule.TrangThai === 'completed') return { text: 'Đã hoàn thành', color: 'green' };
-    if (schedule.TrangThai === 'running') return { text: 'Đang chạy', color: 'blue' };
-    return { text: 'Chưa bắt đầu', color: 'orange' };
+    // Đã hoàn thành
+    if (status === 'completed' || status === 'hoàn thành') {
+      return { text: 'Đã hoàn thành', color: 'green' };
+    }
+    
+    // Đang chạy
+    if (status === 'running' || status === 'đang chạy') {
+      return { text: 'Đang chạy', color: 'blue' };
+    }
+    
+    // Chờ khởi hành (mặc định)
+    return { text: 'Chờ khởi hành', color: 'yellow' };
   };
 
   if (loading) {
@@ -230,9 +225,7 @@ export default function ParentDashboard() {
                               ? 'bg-green-100 text-green-700'
                               : status.color === 'blue'
                               ? 'bg-blue-100 text-blue-700'
-                              : status.color === 'orange'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-gray-100 text-gray-700'
+                              : 'bg-yellow-100 text-yellow-700'
                           }`}
                         >
                           {status.text}

@@ -75,16 +75,37 @@ export const createParent = (req, res) => {
   });
 };
 export const updateParent = (req, res) => {
-  const parentData = {
-    TenPH: req.body.TenPH,
-    SDT: req.body.SDT,
-    DiaChi: req.body.DiaChi
-  };
+  const { TenPH, SDT, DiaChi, TenDangNhap, MatKhau } = req.body;
+  
+  const parentData = { TenPH, SDT, DiaChi };
 
+  // Cập nhật thông tin phụ huynh
   ParentModel.update(req.params.id, parentData, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     if (result.affectedRows === 0) return res.status(404).json({ message: "Phụ huynh không tồn tại" });
-    res.json({ message: "Cập nhật phụ huynh thành công" });
+
+    // Nếu có cập nhật tài khoản/mật khẩu
+    if (TenDangNhap || MatKhau) {
+      // Lấy MaTK từ phụ huynh
+      const sql = "SELECT MaTK FROM phuhuynh WHERE MaPH = ?";
+      db.query(sql, [req.params.id], (err2, phResult) => {
+        if (err2) return res.status(500).json({ error: err2.message });
+        if (phResult.length === 0) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
+
+        const maTK = phResult[0].MaTK;
+        const accountData = {};
+        if (TenDangNhap) accountData.TenDangNhap = TenDangNhap;
+        if (MatKhau) accountData.MatKhau = MatKhau;
+
+        // Cập nhật tài khoản
+        UserModel.update(maTK, accountData, (err3) => {
+          if (err3) return res.status(500).json({ error: err3.message });
+          res.json({ message: "Cập nhật phụ huynh + tài khoản thành công" });
+        });
+      });
+    } else {
+      res.json({ message: "Cập nhật phụ huynh thành công" });
+    }
   });
 };
 

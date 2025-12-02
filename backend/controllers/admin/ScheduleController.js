@@ -2,6 +2,7 @@ import ScheduleModel from "../../models/admin/ScheduleModel.js";
 import StudentModel from "../../models/admin/StudentModel.js";
 import AttendanceModel from "../../models/admin/AttendanceModel.js";
 import { createStopPassedNotification } from "../../services/notificationService.js";
+import { updateScheduleStatus, notifyUpcomingStop } from "../../services/scheduleTrackingService.js";
 import { getIO } from "../../socket/socketManager.js";
 import db from "../../config/db.js";
 
@@ -88,6 +89,22 @@ export const updateSchedule = (req, res) => {
       if (result.affectedRows === 0) return res.status(404).json({ message: "Lịch trình không tồn tại" });
       res.json({ message: "Cập nhật lịch trình thành công" });
     });
+  });
+};
+
+export const updateScheduleStatusOnly = (req, res) => {
+  const { status } = req.body;
+  
+  if (!status) {
+    return res.status(400).json({ error: "Trạng thái không được để trống" });
+  }
+
+  const scheduleData = { TrangThai: status };
+  
+  ScheduleModel.update(req.params.id, scheduleData, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Lịch trình không tồn tại" });
+    res.json({ message: "Cập nhật trạng thái lịch trình thành công" });
   });
 };
 
@@ -188,25 +205,34 @@ export const updateStopStatus = (req, res) => {
   const { detailId } = req.params;
   const { status } = req.body;
 
+  console.log(`🔄 [updateStopStatus] detailId=${detailId}, status=${status}`);
+
   // Lấy thông tin chi tiết lịch trình trước khi update
   const getDetailSql = `
-    SELECT MaLT, MaTram 
-    FROM chitietlichtrinh 
-    WHERE MaCTLT = ?
+    SELECT ct.MaLT, ct.MaTram, t.ThuTu
+    FROM chitietlichtrinh ct
+    JOIN tram t ON ct.MaTram = t.MaTram
+    WHERE ct.MaCTLT = ?
   `;
 
   db.query(getDetailSql, [detailId], (getErr, detailResults) => {
-    if (getErr) return res.status(500).json({ error: getErr.message });
-    if (detailResults.length === 0) return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
+    if (getErr) {
+      console.error(`❌ [updateStopStatus] Lỗi query chi tiết:`, getErr);
+      return res.status(500).json({ error: getErr.message });
+    }
+    if (detailResults.length === 0) {
+      console.warn(`⚠️ [updateStopStatus] Không tìm thấy chi tiết: ${detailId}`);
+      return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
+    }
 
-    const { MaLT: scheduleId, MaTram: stopId } = detailResults[0];
+    const { MaLT: scheduleId, MaTram: stopId, ThuTu: stopOrder } = detailResults[0];
 
     // Update trạng thái
     ScheduleModel.updateStopStatus(detailId, status, (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Chi tiết lịch trình không tồn tại" });
 
-      console.log(`🚏 [updateStopStatus] Xe qua trạm: scheduleId=${scheduleId}, stopId=${stopId}, status=${status}`);
+      console.log(`🚏 [updateStopStatus] Xe qua trạm: scheduleId=${scheduleId}, stopId=${stopId}, order=${stopOrder}, status=${status}`);
 
       // Emit realtime update cho trạng thái trạm
       try {
@@ -222,13 +248,36 @@ export const updateStopStatus = (req, res) => {
         console.error('⚠️ Lỗi emit socket:', socketErr);
       }
 
-      // Nếu xe vừa qua trạm (status = '1'), tạo thông báo
+      // Nếu xe vừa qua trạm (status = '1')
       if (status === '1') {
+        // 1. Tạo thông báo cho phụ huynh có con ở trạm này
         createStopPassedNotification(scheduleId, stopId, (notifErr, notifications) => {
           if (notifErr) {
             console.error('⚠️ Lỗi tạo thông báo qua trạm:', notifErr);
           } else {
             console.log(`✅ Đã tạo ${notifications.length} thông báo qua trạm`);
+          }
+        });
+
+        // 2. Thông báo cho phụ huynh ở trạm tiếp theo (xe đang đến gần)
+        notifyUpcomingStop(scheduleId, stopOrder, (upcomingErr, result) => {
+          if (upcomingErr) {
+            console.error('⚠️ Lỗi thông báo trạm tiếp theo:', upcomingErr);
+          } else if (result.notified > 0) {
+            console.log(`✅ Đã thông báo ${result.notified} phụ huynh về trạm tiếp theo`);
+          }
+        });
+
+        // 3. Kiểm tra và cập nhật trạng thái lịch trình (completed nếu tất cả trạm đã qua)
+        updateScheduleStatus(scheduleId, (statusErr, statusResult) => {
+          if (statusErr) {
+            console.error('⚠️ Lỗi cập nhật trạng thái lịch trình:', statusErr);
+            console.error('⚠️ Stack trace:', statusErr.stack);
+          } else {
+            console.log(`✅ Trạng thái lịch trình ${scheduleId}: ${statusResult.status} (changed: ${statusResult.changed})`);
+            if (statusResult.status === 'completed') {
+              console.log(`🎉 Lịch trình ${scheduleId} đã hoàn thành tất cả trạm!`);
+            }
           }
         });
       }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { AlertTriangle, BarChart3, Navigation, MapPin } from "lucide-react";
+import { AlertTriangle, BarChart3, Navigation } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -32,11 +32,11 @@ export default function DriverSchedule() {
         const processed = res.data.map(s => {
           console.log('Processing schedule:', { MaLT: s.MaLT, type: typeof s.MaLT });
           
-          // Format date: 2025-11-23T17:00:00.000Z -> 24/11/2025
+          // Format date: Backend đã trả về "2025-11-25" (string)
           let formattedDate = s.NgayChay;
           if (s.NgayChay) {
-            // Parse date string directly to avoid timezone issues
-            const dateStr = s.NgayChay.split('T')[0]; // Get "2025-11-23"
+            // NgayChay đã là string "YYYY-MM-DD" từ DATE_FORMAT
+            const dateStr = s.NgayChay.includes('T') ? s.NgayChay.split('T')[0] : s.NgayChay;
             const [year, month, day] = dateStr.split('-');
             formattedDate = `${day}/${month}/${year}`;
           }
@@ -146,10 +146,10 @@ export default function DriverSchedule() {
                 
                 {/* Action Buttons */}
                 <div className="p-3 bg-gray-50 flex gap-2 justify-end">
-                  
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Navigate to dashboard with ID:', schedule.id);
                       navigate(`/driver-dashboard/${schedule.id}`);
                     }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-all text-xs font-medium"
@@ -160,6 +160,7 @@ export default function DriverSchedule() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Navigate to tracking with ID:', schedule.id);
                       navigate(`/driver-tracking/${schedule.id}`);
                     }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all text-xs font-medium"
