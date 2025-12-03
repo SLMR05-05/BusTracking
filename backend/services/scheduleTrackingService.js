@@ -118,7 +118,7 @@ const notifyFirstStopParents = (scheduleId) => {
     JOIN tram t ON ct.MaTram = t.MaTram
     JOIN lichtrinh lt ON ct.MaLT = lt.MaLT
     JOIN tuyenduong td ON lt.MaTD = td.MaTD
-    JOIN hocsinh hs ON hs.MaTram = t.MaTram AND hs.MaTD = td.MaTD
+    JOIN hocsinh hs ON hs.MaTram = t.MaTram
     JOIN phuhuynh ph ON hs.MaPH = ph.MaPH
     WHERE ct.MaLT = ? AND t.ThuTu = 1 AND hs.TrangThaiXoa = '0'
   `;
@@ -170,7 +170,7 @@ export const notifyUpcomingStop = (scheduleId, currentStopOrder, callback) => {
     JOIN tram t ON ct.MaTram = t.MaTram
     JOIN lichtrinh lt ON ct.MaLT = lt.MaLT
     JOIN tuyenduong td ON lt.MaTD = td.MaTD
-    JOIN hocsinh hs ON hs.MaTram = t.MaTram AND hs.MaTD = td.MaTD
+    JOIN hocsinh hs ON hs.MaTram = t.MaTram
     JOIN phuhuynh ph ON hs.MaPH = ph.MaPH
     WHERE ct.MaLT = ? 
       AND t.ThuTu = ? 

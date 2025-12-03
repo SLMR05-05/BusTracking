@@ -17,6 +17,7 @@ export default function RouteMap({ stops = [], currentPosition = null }) {
   const markersRef = useRef([]);
   const routingControlRef = useRef(null);
   const hasInitializedBoundsRef = useRef(false);
+  
   // Initialize map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
